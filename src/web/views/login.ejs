@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #1a1a2e; display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: Arial, sans-serif; }
+    .card { background: #16213e; padding: 2rem; border-radius: 12px; width: 100%; max-width: 380px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    h1 { color: #e94560; text-align: center; margin-bottom: 1.5rem; font-size: 1.5rem; }
+    .form-group { margin-bottom: 1rem; }
+    label { color: #a8b2d8; font-size: 0.875rem; display: block; margin-bottom: 0.4rem; }
+    input { width: 100%; padding: 0.75rem; background: #0f3460; border: 1px solid #e94560; border-radius: 8px; color: #fff; font-size: 1rem; outline: none; }
+    input:focus { border-color: #fff; }
+    button { width: 100%; padding: 0.75rem; background: #e94560; color: #fff; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; margin-top: 0.5rem; }
+    button:hover { background: #c73652; }
+    .error { background: #e9456033; border: 1px solid #e94560; color: #e94560; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; text-align: center; font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🤖 Admin Panel</h1>
+    <% if (error) { %>
+      <div class="error"><%= error %></div>
+    <% } %>
+    <form method="POST" action="/admin/login">
+      <div class="form-group">
+        <label>Senha de Acesso</label>
+        <input type="password" name="password" placeholder="Digite a senha..." autofocus required>
+      </div>
+      <button type="submit">Entrar</button>
+    </form>
+  </div>
+</body>
+</html>
