@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Planos - Admin Bot</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f3460; color: #e0e0e0; min-height: 100vh; }
+    nav { background: #16213e; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+    nav h1 { font-size: 1.2rem; color: #e94560; }
+    nav div a { color: #a8b2d8; text-decoration: none; margin-left: 1rem; font-size: 0.9rem; }
+    nav div a:hover { color: #e94560; }
+    .container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+    .card { background: #16213e; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    h2 { color: #e94560; margin-bottom: 1rem; font-size: 1.1rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #0f3460; font-size: 0.875rem; }
+    tr:last-child td { border-bottom: none; }
+    thead tr th { border-bottom: none; }
+    .form-group { margin-bottom: 1rem; }
+    label { color: #a8b2d8; font-size: 0.875rem; display: block; margin-bottom: 0.4rem; }
+    input { width: 100%; padding: 0.6rem 1.2rem; background: #0f3460; border: 1px solid #a8b2d8; border-radius: 8px; color: #e0e0e0; font-size: 0.9rem; }
+    .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 8px; cursor: pointer; font-size: 0.875rem; }
+    .btn-primary { background: #e94560; color: #fff; }
+    .btn-secondary { background: #0f3460; color: #a8b2d8; }
+    .badge-on { background: #22c55e33; color: #22c55e; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; }
+    .badge-off { background: #ef444433; color: #ef4444; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; }
+    .alert { padding: 0.8rem 1.2rem; border-radius: 8px; margin-bottom: 1rem; }
+    .alert-success { background: #22c55e33; color: #22c55e; }
+    .alert-error { background: #ef444433; color: #ef4444; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>🤖 Admin Bot</h1>
+    <div>
+      <a href="/admin">Dashboard</a>
+      <a href="/admin/subscribers">Assinantes</a>
+      <a href="/admin/plans">Planos</a>
+      <a href="/admin/broadcast">Broadcast</a>
+      <a href="/admin/logout">Sair</a>
+    </div>
+  </nav>
+  <div class="container">
+    <% if (locals.success) { %>
+      <div class="alert alert-success">✅ <%= success %></div>
+    <% } %>
+    <% if (locals.error) { %>
+      <div class="alert alert-error">❌ <%= error %></div>
+    <% } %>
+    <div>
+      <h2>🎯 Planos Cadastrados</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr><th>Nome</th><th>Dias</th><th>Valor</th><th>Status</th><th>Ação</th></tr>
+          </thead>
+          <tbody>
+            <% plans.forEach(plan => { %>
+            <tr>
+              <td><%= plan.name %></td>
+              <td><%= plan.duration_days %>d</td>
+              <td>R$ <%= Number(plan.price).toFixed(2) %></td>
+              <td><span class="<%= plan.active ? 'badge-on' : 'badge-off' %>"><%= plan.active ? 'Ativo' : 'Inativo' %></span></td>
+              <td>
+                <form method="POST" action="/admin/plans/<%= plan.id %>/toggle" style="display:inline">
+                  <button type="submit" class="btn btn-secondary"><%= plan.active ? 'Desativar' : 'Ativar' %></button>
+                </form>
+              </td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <h2>➕ Novo Plano</h2>
+      <div class="card">
+        <form method="POST" action="/admin/plans">
+          <div class="form-group">
+            <label>Nome do Plano</label>
+            <input type="text" name="name" placeholder="Ex: Mensal, Trimestral...">
+          </div>
+          <div class="form-group">
+            <label>Duração (dias)</label>
+            <input type="number" name="duration_days" placeholder="Ex: 30, 90, 365">
+          </div>
+          <div class="form-group">
+            <label>Valor (R$)</label>
+            <input type="number" step="0.01" name="price" placeholder="Ex: 29.90">
+          </div>
+          <button type="submit" class="btn btn-primary">Criar Plano</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
