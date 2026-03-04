@@ -1,5 +1,4 @@
 const db = require('../db/index');
-const { Markup } = require('telegraf');
 const { createPixCharge } = require('../services/efi');
 const QRCode = require('qrcode');
 
@@ -22,25 +21,38 @@ async function handlePlanSelect(ctx) {
       description: `Acesso ${plan.name} - ${ctx.from.first_name}`
     });
 
-    // Salva pagamento pendente
     await db.query(`
       INSERT INTO payments (user_id, plan_id, txid, amount, pix_copia_cola)
       VALUES ($1, $2, $3, $4, $5)
     `, [user.id, plan.id, txid, plan.price, pixCopiaECola]);
 
-    // Gera QR Code em base64
     const qrImage = await QRCode.toDataURL(pixCopiaECola);
+
+    // Botão copy_text tem limite no texto; se passar disso, não envia o botão (fica só o código no caption). [page:0]
+    const canCopyBtn = typeof pixCopiaECola === 'string' && pixCopiaECola.length <= 256; [page:0]
+
+    const inline_keyboard = [];
+
+    if (canCopyBtn) {
+      inline_keyboard.push([
+        { text: '📋 COPIAR PIX COPIA E COLA', copy_text: { text: pixCopiaECola } } // [page:0]
+      ]);
+    }
+
+    inline_keyboard.push([
+      { text: '✅ Verificar Pagamento', callback_data: `check_pay_${txid}` }
+    ]);
 
     await ctx.replyWithPhoto(
       { source: Buffer.from(qrImage.split(',')[1], 'base64') },
       {
-        caption: `💰 *${plan.name} — R$ ${Number(plan.price).toFixed(2)}*\n\n` +
+        caption:
+          `💰 *${plan.name} — R$ ${Number(plan.price).toFixed(2)}*\n\n` +
           `📋 Pix Copia e Cola:\n\`${pixCopiaECola}\`\n\n` +
-          `⏱ Após pagar, clique em *Verificar Pagamento*`,
+          `⏱ Após pagar, clique em *Verificar Pagamento*` +
+          (!canCopyBtn ? `\n\n_(Código grande; copie pelo texto acima)_` : ''),
         parse_mode: 'Markdown',
-        ...Markup.inlineKeyboard([
-          [Markup.button.callback('✅ Verificar Pagamento', `check_pay_${txid}`)]
-        ])
+        reply_markup: { inline_keyboard }
       }
     );
   } catch (err) {
