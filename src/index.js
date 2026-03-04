@@ -6,10 +6,10 @@ const { startScheduler } = require('./services/scheduler');
 
 async function main() {
   await initDB();
-  startBot();
+  await startBot();
   startServer();
   startScheduler();
-  console.log('✅ Bot, servidor e scheduler iniciados');
+  console.log('\u2705 Bot, servidor e scheduler iniciados');
 }
 
 main().catch(console.error);
