@@ -23,7 +23,7 @@ function initBot() {
   bot.start(handleStart);
   bot.command('planos', handlePlanos);
 
-  // Callbacks dos botoes inline ✅ CORRIGIDO
+  // Callbacks dos botoes inline ✅ FINAL
   bot.action(/^plan_(\d+)$/, handlePlanSelect);
   bot.action(/^check_pay_(.+)$/, handleCheckPayment);
   bot.action('show_plans', handlePlanos);
@@ -46,13 +46,20 @@ function initBot() {
 async function startBot() {
   initBot();
 
-  // ✅ SEMPRE limpa polling anterior (fix 409 definitivo)
-  try {
-    await bot.telegram.deleteWebhook({ drop_pending_updates: true });
-    console.log('🧹 Polling anterior limpo');
-  } catch (e) {
-    console.log('⚠️  Ignorando deleteWebhook:', e.message);
+  // 🔥 FIX 409 DEFINITIVO: retry deleteWebhook 3x + delay
+  for (let i = 0; i < 3; i++) {
+    try {
+      await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+      console.log('🧹 Polling anterior LIMPO');
+      break;
+    } catch (e) {
+      console.log(`⚠️  Tentativa ${i+1}/3 deleteWebhook:`, e.message);
+      await new Promise(r => setTimeout(r, 1000));
+    }
   }
+
+  // Espera polling morrer
+  await new Promise(r => setTimeout(r, 2000));
 
   if (started) return;
 
@@ -62,7 +69,7 @@ async function startBot() {
   });
 
   started = true;
-  console.log('🤖 Bot iniciado');
+  console.log('🤖 Bot iniciado OK');
 
   process.once('SIGINT', () => bot.stop('SIGINT'));
   process.once('SIGTERM', () => bot.stop('SIGTERM'));
