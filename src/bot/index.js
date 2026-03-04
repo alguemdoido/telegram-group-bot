@@ -6,7 +6,7 @@ const db = require('../db/index');
 const token = (process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN || '').trim();
 if (!token) throw new Error('Missing TELEGRAM_BOT_TOKEN');
 
-let bot;          // instância única
+let bot; // instância única
 let started = false;
 
 function getBot() {
@@ -62,25 +62,26 @@ async function startBot() {
   // Pequeno delay para garantir que conexão anterior fechou
   await new Promise(r => setTimeout(r, 1500));
 
-  try {
-    await bot.launch({
-      dropPendingUpdates: true,
-      allowedUpdates: ['message', 'callback_query', 'chat_member', 'my_chat_member'],
-    });
-    started = true;
-    console.log('🤖 Bot iniciado OK');
-
-    process.once('SIGINT', () => bot.stop('SIGINT'));
-    process.once('SIGTERM', () => bot.stop('SIGTERM'));
-  } catch (err) {
+  // Lança o bot sem bloquear o processo (não usa await)
+  bot.launch({
+    dropPendingUpdates: true,
+    allowedUpdates: ['message', 'callback_query', 'chat_member', 'my_chat_member'],
+  }).then(() => {
+    console.log('🤖 Bot encerrado.');
+  }).catch((err) => {
     if (err.response && err.response.error_code === 409) {
-      console.error('❌ Conflito 409: outra instância já está rodando. Encerrando instância duplicada...');
-      process.exit(0); // Encerra silenciosamente — a outra instância continua
+      console.error('❌ Conflito 409: outra instância já está rodando. Encerrando...');
+      process.exit(0);
     } else {
       console.error('❌ Erro ao iniciar o bot:', err.message);
-      throw err;
     }
-  }
+  });
+
+  started = true;
+  console.log('🤖 Bot iniciado OK');
+
+  process.once('SIGINT', () => bot.stop('SIGINT'));
+  process.once('SIGTERM', () => bot.stop('SIGTERM'));
 }
 
 module.exports = { bot: () => getBot(), getBot, initBot, startBot };
