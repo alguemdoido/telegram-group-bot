@@ -8,7 +8,7 @@ router.get('/efi/webhook', (req, res) => {
   res.status(200).json({ status: 'webhook endpoint ativo' });
 });
 
-router.post('/efi/webhook', async (req, res) => {
+router.post(['/efi/webhook', '/efi/webhook/pix'], async (req, res) => {
   console.log('\ud83d\udce5 Webhook EFI recebido:', JSON.stringify(req.body));
   res.status(200).json({ ok: true }); // EFI exige resposta rapida
 
