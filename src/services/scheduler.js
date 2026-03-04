@@ -1,6 +1,6 @@
 const cron = require('node-cron');
 const db = require('../db/index');
-const { bot } = require('../bot/index');
+const { getBot } = require('../bot/index');
 const { Markup } = require('telegraf');
 
 function startScheduler() {
@@ -13,6 +13,8 @@ function startScheduler() {
       JOIN users u ON u.id = s.user_id
       WHERE s.status = 'active' AND s.expires_at <= NOW()
     `);
+
+    const bot = getBot();
 
     for (const sub of expired.rows) {
       try {
@@ -32,7 +34,7 @@ function startScheduler() {
         await bot.telegram.sendMessage(sub.telegram_id,
           `⚠️ Seu acesso ao grupo expirou.\n\nRenove agora para voltar! 👇`,
           Markup.inlineKeyboard([
-            [Markup.button.callback('🔄 Ver Planos', 'show_plans')]
+            [Markup.button.callback('📋 Ver Planos', 'show_plans')]
           ])
         );
       } catch (err) {
@@ -53,13 +55,15 @@ function startScheduler() {
       AND s.expires_at BETWEEN NOW() AND NOW() + INTERVAL '25 hours'
     `);
 
+    const bot = getBot();
+
     for (const sub of expiringSoon.rows) {
       await bot.telegram.sendMessage(sub.telegram_id,
-        `⏰ *Seu acesso expira amanhã!*\n\nRenove agora e não perca o acesso ao grupo. Basta gerar o PIX abaixo 👇`,
+        `🔔 *Seu acesso expira amanhã!*\n\nRenove agora e não perca o acesso ao grupo.`,
         {
           parse_mode: 'Markdown',
           ...Markup.inlineKeyboard([
-            [Markup.button.callback(`💳 Renovar ${sub.plan_name}`, `plan_${sub.plan_id}`)]
+            [Markup.button.callback(`📋 Renovar ${sub.plan_name}`, `plan_${sub.plan_id}`)]
           ])
         }
       );
