@@ -1,44 +1,41 @@
 const EfiPay = require('sdk-node-apis-efi');
-const { v4: uuidv4 } = require('uuid');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-
-// Converte base64 → arquivo temporário (EFI SDK exige path de arquivo)
-function getCertPath() {
-  const base64 = process.env.EFI_CERT_BASE64;
-  if (!base64) throw new Error('EFI_CERT_BASE64 não definido');
-
-  const certBuffer = Buffer.from(base64, 'base64');
-  const tempPath = path.join(os.tmpdir(), 'efi_cert.p12');
-  fs.writeFileSync(tempPath, certBuffer);
-  return tempPath;
-}
+const crypto = require('crypto');
 
 const efi = new EfiPay({
   client_id: process.env.EFI_CLIENT_ID,
   client_secret: process.env.EFI_CLIENT_SECRET,
-  certificate: getCertPath(),
-  sandbox: process.env.NODE_ENV !== 'production'
+
+  // certificado em base64 (sem arquivo)
+  certificate: process.env.EFI_CERT_BASE64,
+  cert_base64: true, // <- a SDK suporta isso [page:1]
+
+  sandbox: process.env.EFI_SANDBOX === 'true'
 });
 
 async function createPixCharge({ value, description }) {
-  const txid = uuidv4().replace(/-/g, '').substring(0, 35);
+  const txid = crypto.randomBytes(16).toString('hex'); // 32 chars
 
   const body = {
     calendario: { expiracao: 3600 },
-    devedor: {},
-    valor: { original: Number(value).toFixed(2) },
+    valor: { original: Number(value).toFixed(2) }, // ex "37.00" [page:0]
     chave: process.env.EFI_PIX_KEY,
-    infoAdicionais: [{ nome: 'Serviço', valor: description }]
+    solicitacaoPagador: description || 'Pagamento'
+    // NÃO mande devedor: {}  (omita inteiro) [page:2]
   };
 
-  const response = await efi.pixCreateImmediateCharge({ txid }, body);
-  const qrRes = await efi.pixGenerateQRCode({ id: response.loc.id });
+  const cob = await efi.pixCreateImmediateCharge({ txid }, body);
+
+  // Em sucesso, a própria resposta pode trazer pixCopiaECola [page:0]
+  const pixCopiaECola = cob.pixCopiaECola;
+
+  // Se você também quiser QRCode “texto/ASCII”, dá pra gerar pelo loc.id [page:0]
+  // const qr = await efi.pixGenerateQRCode({ id: cob.loc.id });
+  // const pixCopiaECola = qr.qrcode;
 
   return {
-    txid: response.txid,
-    pixCopiaECola: qrRes.qrcode
+    txid: cob.txid,
+    locId: cob.loc?.id,
+    pixCopiaECola
   };
 }
 
