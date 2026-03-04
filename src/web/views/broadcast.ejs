@@ -1,64 +1,65 @@
-// GARANTA que isso já existe no topo do admin.js:
-// const { Telegram } = require('telegraf');
-// const db = require('../../db/index');
-// (e o requireAuth já existente)
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Broadcast - Admin Bot</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f3460; color: #e0e0e0; min-height: 100vh; }
+    nav { background: #16213e; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+    nav h1 { font-size: 1.2rem; color: #e94560; }
+    nav div a { color: #a8b2d8; text-decoration: none; margin-left: 1rem; font-size: 0.9rem; }
+    nav div a:hover { color: #e94560; }
+    .container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+    .card { background: #16213e; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    h2 { color: #e94560; margin-bottom: 1rem; font-size: 1.1rem; }
+    .form-group { margin-bottom: 1rem; }
+    label { color: #a8b2d8; font-size: 0.875rem; display: block; margin-bottom: 0.4rem; }
+    textarea { width: 100%; padding: 0.6rem 1.2rem; background: #0f3460; border: 1px solid #a8b2d8; border-radius: 8px; color: #e0e0e0; font-size: 0.9rem; resize: vertical; min-height: 150px; }
+    .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+    .btn-primary { background: #e94560; color: #fff; }
+    .alert { padding: 0.8rem 1.2rem; border-radius: 8px; margin-bottom: 1rem; }
+    .alert-success { background: #22c55e33; color: #22c55e; }
+    .alert-error { background: #ef444433; color: #ef4444; }
+    .info-box { background: #0f3460; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; font-size: 0.85rem; color: #a8b2d8; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>🤖 Admin Bot</h1>
+    <div>
+      <a href="/admin">Dashboard</a>
+      <a href="/admin/subscribers">Assinantes</a>
+      <a href="/admin/plans">Planos</a>
+      <a href="/admin/broadcast">Broadcast</a>
+      <a href="/admin/logout">Sair</a>
+    </div>
+  </nav>
 
-router.get('/broadcast', requireAuth, (req, res) => {
-  res.render('broadcast', { success: null, error: null });
-});
+  <div class="container">
+    <% if (typeof success !== 'undefined' && success) { %>
+      <div class="alert alert-success">✅ <%= success %></div>
+    <% } %>
 
-router.post('/broadcast', requireAuth, async (req, res) => {
-  try {
-    const message = (req.body.message || '').trim();
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="alert alert-error">❌ <%= error %></div>
+    <% } %>
 
-    if (!message) {
-      return res.render('broadcast', {
-        success: null,
-        error: 'Mensagem vazia.',
-      });
-    }
+    <div class="card">
+      <h2>📢 Enviar Mensagem em Massa</h2>
+      <div class="info-box">
+        Envie uma mensagem para todos os assinantes ativos do bot. Use com cuidado!
+      </div>
 
-    const token = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
-    if (!token) {
-      return res.render('broadcast', {
-        success: null,
-        error: 'BOT_TOKEN não configurado nas variáveis de ambiente.',
-      });
-    }
-
-    const telegram = new Telegram(token);
-
-    const users = await db.query(`
-      SELECT DISTINCT u.telegram_id
-      FROM subscriptions s
-      JOIN users u ON u.id = s.user_id
-      WHERE s.status = 'active'
-        AND u.telegram_id IS NOT NULL
-    `);
-
-    let sent = 0;
-    let failed = 0;
-
-    for (const row of users.rows) {
-      const chatId = row.telegram_id;
-
-      try {
-        await telegram.sendMessage(chatId, message);
-        sent++;
-        await new Promise((r) => setTimeout(r, 50));
-      } catch (e) {
-        failed++;
-      }
-    }
-
-    return res.render('broadcast', {
-      success: `Broadcast enviado: ${sent} sucesso(s), ${failed} falha(s).`,
-      error: null,
-    });
-  } catch (err) {
-    return res.render('broadcast', {
-      success: null,
-      error: 'Erro ao enviar broadcast (verifique logs do servidor).',
-    });
-  }
-});
+      <form method="POST" action="/admin/broadcast">
+        <div class="form-group">
+          <label>Mensagem</label>
+          <textarea name="message" placeholder="Digite a mensagem que será enviada para todos os assinantes..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">📤 Enviar Broadcast</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>
