@@ -2,7 +2,7 @@ const { Telegraf } = require('telegraf');
 const { handleStart, handlePlanos } = require('./commands');
 const { handlePlanSelect, handleCheckPayment } = require('./actions');
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
+const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
 // Registra usuarios no /start
 bot.start(handleStart);
