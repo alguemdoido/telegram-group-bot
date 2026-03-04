@@ -3,7 +3,7 @@ const { handleStart, handlePlanos } = require('./commands');
 const { handlePlanSelect, handleCheckPayment } = require('./actions');
 const db = require('../db/index');
 
-const token = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN;
+const token = (process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN || '').trim();
 if (!token) throw new Error('Missing TELEGRAM_BOT_TOKEN');
 
 let bot;        // instância única
@@ -24,8 +24,7 @@ function initBot() {
   bot.command('planos', handlePlanos);
 
   // Callbacks dos botoes inline
-  // (OBS: aqui era \\d, isso quebrava o regex. O certo é \d)
-  bot.action(/^plan_(\d+)$/, handlePlanSelect);
+  bot.action(/^plan_(\d+)$/, handlePlanSelect);     // ✅ FIX: \d (não \\d)
   bot.action(/^check_pay_(.+)$/, handleCheckPayment);
   bot.action('show_plans', handlePlanos);
 
@@ -49,8 +48,8 @@ async function startBot() {
 
   initBot();
 
-  // Garante que não tem webhook ativo e ainda limpa updates pendentes no Telegram
-  await bot.telegram.deleteWebhook({ drop_pending_updates: true }); // Telegram suporta drop_pending_updates [web:159]
+  // ✅ FIX 409: Mata webhook/polling anterior ANTES de launch
+  await bot.telegram.deleteWebhook({ drop_pending_updates: true });
 
   await bot.launch({
     dropPendingUpdates: true,
