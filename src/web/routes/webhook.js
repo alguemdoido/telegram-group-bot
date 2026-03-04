@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../../db/index');
-const { bot } = require('../../bot/index');
+const { getBot } = require('../../bot/index');
 
 router.post('/efi/webhook', async (req, res) => {
   res.status(200).json({ ok: true }); // EFI exige resposta rapida
@@ -23,8 +23,10 @@ router.post('/efi/webhook', async (req, res) => {
     if (!paymentRes.rows[0]) continue;
     const payment = paymentRes.rows[0];
 
+    const bot = getBot();
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + payment.duration_days * 86400000);
+    const durationDays = Number(payment.duration_days) || 30;
+    const expiresAt = new Date(now.getTime() + durationDays * 86400000);
 
     // Verifica se ja tem assinatura ativa (renovacao)
     const existingSub = await db.query(`
@@ -74,11 +76,10 @@ router.post('/efi/webhook', async (req, res) => {
     }
 
     // Atualiza pagamento
-    await db.query(`
-      UPDATE payments
-      SET status = 'paid', paid_at = NOW(), subscription_id = $1
-      WHERE txid = $2
-    `, [subscriptionId, txid]);
+    await db.query(
+      `UPDATE payments SET status = 'paid', paid_at = NOW(), subscription_id = $1 WHERE txid = $2`,
+      [subscriptionId, txid]
+    );
   }
 });
 
