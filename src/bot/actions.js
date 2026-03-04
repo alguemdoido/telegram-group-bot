@@ -28,14 +28,17 @@ async function handlePlanSelect(ctx) {
 
     const qrImage = await QRCode.toDataURL(pixCopiaECola);
 
-    // Botão copy_text tem limite no texto; se passar disso, não envia o botão (fica só o código no caption). [page:0]
-    const canCopyBtn = typeof pixCopiaECola === 'string' && pixCopiaECola.length <= 256; [page:0]
+    // Copy button: em geral funciona melhor se o texto não for enorme
+    const canCopyBtn =
+      typeof pixCopiaECola === 'string' &&
+      pixCopiaECola.length > 0 &&
+      pixCopiaECola.length <= 256;
 
     const inline_keyboard = [];
 
     if (canCopyBtn) {
       inline_keyboard.push([
-        { text: '📋 COPIAR PIX COPIA E COLA', copy_text: { text: pixCopiaECola } } // [page:0]
+        { text: '📋 COPIAR PIX COPIA E COLA', copy_text: { text: pixCopiaECola } }
       ]);
     }
 
@@ -50,7 +53,7 @@ async function handlePlanSelect(ctx) {
           `💰 *${plan.name} — R$ ${Number(plan.price).toFixed(2)}*\n\n` +
           `📋 Pix Copia e Cola:\n\`${pixCopiaECola}\`\n\n` +
           `⏱ Após pagar, clique em *Verificar Pagamento*` +
-          (!canCopyBtn ? `\n\n_(Código grande; copie pelo texto acima)_` : ''),
+          (!canCopyBtn ? `\n\n_(Se não aparecer o botão, copie pelo código acima)_` : ''),
         parse_mode: 'Markdown',
         reply_markup: { inline_keyboard }
       }
@@ -63,6 +66,7 @@ async function handlePlanSelect(ctx) {
 
 async function handleCheckPayment(ctx) {
   const txid = ctx.match[1];
+
   const payment = await db.query(
     `SELECT * FROM payments WHERE txid = $1`,
     [txid]
