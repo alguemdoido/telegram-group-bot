@@ -6,23 +6,71 @@
   <title>Broadcast - Admin Bot</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', sans-serif; background: #0f3460; color: #e0e0e0; min-height: 100vh; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f3460; color: #e0e0e0; }
     nav { background: #16213e; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
     nav h1 { font-size: 1.2rem; color: #e94560; }
     nav div a { color: #a8b2d8; text-decoration: none; margin-left: 1rem; font-size: 0.9rem; }
     nav div a:hover { color: #e94560; }
-    .container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+    .container { max-width: 760px; margin: 2rem auto; padding: 0 1rem; }
     .card { background: #16213e; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
     h2 { color: #e94560; margin-bottom: 1rem; font-size: 1.1rem; }
-    .form-group { margin-bottom: 1rem; }
-    label { color: #a8b2d8; font-size: 0.875rem; display: block; margin-bottom: 0.4rem; }
-    textarea { width: 100%; padding: 0.6rem 1.2rem; background: #0f3460; border: 1px solid #a8b2d8; border-radius: 8px; color: #e0e0e0; font-size: 0.9rem; resize: vertical; min-height: 150px; }
-    .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+    .form-group { margin-bottom: 1.2rem; }
+    label { color: #a8b2d8; font-size: 0.875rem; display: block; margin-bottom: 0.4rem; font-weight: 600; }
+    textarea, select { width: 100%; padding: 0.6rem 1rem; background: #0f3460; border: 1px solid #2a3a6e; border-radius: 8px; color: #e0e0e0; font-size: 0.9rem; }
+    textarea { resize: vertical; min-height: 100px; }
+    .btn { padding: 0.6rem 1.4rem; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; }
     .btn-primary { background: #e94560; color: #fff; }
-    .alert { padding: 0.8rem 1.2rem; border-radius: 8px; margin-bottom: 1rem; }
-    .alert-success { background: #22c55e33; color: #22c55e; }
-    .alert-error { background: #ef444433; color: #ef4444; }
-    .info-box { background: #0f3460; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; font-size: 0.85rem; color: #a8b2d8; }
+    .btn-primary:hover { background: #c73652; }
+    .alert { padding: 0.8rem 1.2rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; }
+    .alert-success { background: #22c55e33; color: #22c55e; border: 1px solid #22c55e55; }
+    .alert-error { background: #ef444433; color: #ef4444; border: 1px solid #ef444455; }
+    .segment-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+    .segment-option { position: relative; }
+    .segment-option input[type=radio] { display: none; }
+    .segment-option label {
+      display: block; padding: 0.85rem; border-radius: 10px;
+      border: 2px solid #2a3a6e; background: #0f3460;
+      cursor: pointer; text-align: center; font-size: 0.82rem;
+      transition: all 0.2s; color: #a8b2d8; font-weight: 600;
+    }
+    .segment-option label .icon { font-size: 1.4rem; display: block; margin-bottom: 0.3rem; }
+    .segment-option label .desc { font-size: 0.72rem; color: #6b7db3; font-weight: 400; margin-top: 0.2rem; display: block; }
+    .segment-option input[type=radio]:checked + label {
+      border-color: #e94560; background: #e9456015; color: #e94560;
+    }
+    .segment-option input[type=radio]:checked + label .desc { color: #e9456099; }
+    .toggle-row { display: flex; align-items: center; gap: 0.75rem; }
+    .toggle { position: relative; width: 44px; height: 24px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background: #2a3a6e; border-radius: 24px; transition: 0.3s;
+    }
+    .slider:before {
+      content: ''; position: absolute;
+      width: 18px; height: 18px; left: 3px; bottom: 3px;
+      background: white; border-radius: 50%; transition: 0.3s;
+    }
+    input:checked + .slider { background: #e94560; }
+    input:checked + .slider:before { transform: translateX(20px); }
+    .toggle-label { color: #a8b2d8; font-size: 0.9rem; font-weight: 600; }
+    .plans-box {
+      display: none; margin-top: 1rem;
+      background: #0f3460; border-radius: 10px;
+      padding: 1rem; border: 1px solid #2a3a6e;
+    }
+    .plans-box.visible { display: block; }
+    .plans-box p { font-size: 0.8rem; color: #6b7db3; margin-bottom: 0.75rem; }
+    .plan-checks { display: flex; flex-direction: column; gap: 0.5rem; }
+    .plan-check { display: flex; align-items: center; gap: 0.6rem; cursor: pointer; }
+    .plan-check input[type=checkbox] { width: 16px; height: 16px; accent-color: #e94560; cursor: pointer; }
+    .plan-check span { font-size: 0.875rem; color: #a8b2d8; }
+    .result-box { background: #0f3460; border-radius: 10px; padding: 1rem 1.2rem; }
+    .result-row { display: flex; justify-content: space-between; padding: 0.3rem 0; font-size: 0.9rem; border-bottom: 1px solid #16213e; }
+    .result-row:last-child { border-bottom: none; }
+    .result-row .val { font-weight: 700; color: #e94560; }
+    .segment-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; background: #e9456022; color: #e94560; margin-left: 0.3rem; }
+    .file-input { width: 100%; padding: 0.5rem; background: #0f3460; border: 1px dashed #2a3a6e; border-radius: 8px; color: #a8b2d8; font-size: 0.85rem; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -38,28 +86,116 @@
   </nav>
 
   <div class="container">
-    <% if (typeof success !== 'undefined' && success) { %>
-      <div class="alert alert-success">✅ <%= success %></div>
-    <% } %>
 
-    <% if (typeof error !== 'undefined' && error) { %>
-      <div class="alert alert-error">❌ <%= error %></div>
+    <% if (result) { %>
+    <div class="card">
+      <h2>📊 Resultado do Envio</h2>
+      <div class="result-box">
+        <div class="result-row">
+          <span>Segmento</span>
+          <span class="val">
+            <% if (result.segment === 'active') { %>Assinantes Ativos
+            <% } else if (result.segment === 'never') { %>Nunca Assinaram
+            <% } else if (result.segment === 'expired') { %>Assinatura Vencida
+            <% } else { %>Todos<% } %>
+          </span>
+        </div>
+        <div class="result-row"><span>Total de destinatários</span><span class="val"><%= result.total %></span></div>
+        <div class="result-row"><span>✅ Enviados com sucesso</span><span class="val" style="color:#22c55e"><%= result.sent %></span></div>
+        <div class="result-row"><span>❌ Falhas</span><span class="val" style="color:<%= result.failed > 0 ? '#ef4444' : '#22c55e' %>"><%= result.failed %></span></div>
+      </div>
+    </div>
     <% } %>
 
     <div class="card">
-      <h2>📢 Enviar Mensagem em Massa</h2>
-      <div class="info-box">
-        Envie uma mensagem para todos os assinantes ativos do bot. Use com cuidado!
-      </div>
+      <h2>📣 Enviar Mensagem em Massa</h2>
 
-      <form method="POST" action="/admin/broadcast">
+      <form method="POST" action="/admin/broadcast" enctype="multipart/form-data">
+
+        <!-- SEGMENTO -->
         <div class="form-group">
-          <label>Mensagem</label>
-          <textarea name="message" placeholder="Digite a mensagem que será enviada para todos os assinantes..."></textarea>
+          <label>Destinatários</label>
+          <div class="segment-grid">
+
+            <div class="segment-option">
+              <input type="radio" name="segment" id="seg-active" value="active" checked>
+              <label for="seg-active">
+                <span class="icon">💳</span>
+                Assinantes Ativos
+                <span class="desc">Quem tem plano ativo agora</span>
+              </label>
+            </div>
+
+            <div class="segment-option">
+              <input type="radio" name="segment" id="seg-never" value="never">
+              <label for="seg-never">
+                <span class="icon">👤</span>
+                Nunca Assinaram
+                <span class="desc">Deram /start mas nunca compraram</span>
+              </label>
+            </div>
+
+            <div class="segment-option">
+              <input type="radio" name="segment" id="seg-expired" value="expired">
+              <label for="seg-expired">
+                <span class="icon">⏰</span>
+                Assinatura Vencida
+                <span class="desc">Já foram assinantes, hoje estão vencidos</span>
+              </label>
+            </div>
+
+          </div>
         </div>
-        <button type="submit" class="btn btn-primary">📤 Enviar Broadcast</button>
+
+        <!-- MENSAGEM -->
+        <div class="form-group">
+          <label>Mensagem <span style="color:#6b7db3;font-weight:400">(suporta *negrito*, _itálico_)</span></label>
+          <textarea name="message" placeholder="Digite a mensagem aqui..." required></textarea>
+        </div>
+
+        <!-- IMAGEM OPCIONAL -->
+        <div class="form-group">
+          <label>Imagem (opcional)</label>
+          <input type="file" name="photo" accept="image/*" class="file-input">
+        </div>
+
+        <!-- TOGGLE BOTOES DE PLANOS -->
+        <div class="form-group">
+          <div class="toggle-row">
+            <label class="toggle">
+              <input type="checkbox" id="toggle-plans" name="includePlans" value="1" onchange="togglePlans(this)">
+              <span class="slider"></span>
+            </label>
+            <span class="toggle-label">Incluir botões de planos na mensagem</span>
+          </div>
+
+          <div class="plans-box" id="plans-box">
+            <p>Selecione quais planos aparecerão como botões na mensagem:</p>
+            <div class="plan-checks">
+              <% plans.forEach(function(plan) { %>
+              <label class="plan-check">
+                <input type="checkbox" name="planIds" value="<%= plan.id %>">
+                <span>💳 <%= plan.name %> &mdash; R$ <%= Number(plan.price).toFixed(2) %></span>
+              </label>
+              <% }); %>
+            </div>
+            <% if (!plans.length) { %>
+            <p style="color:#ef4444">Nenhum plano ativo cadastrado.</p>
+            <% } %>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">📨 Enviar Broadcast</button>
       </form>
     </div>
+
   </div>
+
+  <script>
+    function togglePlans(checkbox) {
+      const box = document.getElementById('plans-box');
+      box.classList.toggle('visible', checkbox.checked);
+    }
+  </script>
 </body>
 </html>
