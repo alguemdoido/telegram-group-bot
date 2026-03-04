@@ -21,14 +21,15 @@ async function handlePlanSelect(ctx) {
       description: `Acesso ${plan.name} - ${ctx.from.first_name}`
     });
 
-    await db.query(`
-      INSERT INTO payments (user_id, plan_id, txid, amount, pix_copia_cola)
-      VALUES ($1, $2, $3, $4, $5)
-    `, [user.id, plan.id, txid, plan.price, pixCopiaECola]);
+    // ✅ INSERT com status 'pending' obrigatorio para o webhook encontrar
+    await db.query(
+      `INSERT INTO payments (user_id, plan_id, txid, amount, pix_copia_cola, status)
+       VALUES ($1, $2, $3, $4, $5, 'pending')`,
+      [user.id, plan.id, txid, plan.price, pixCopiaECola]
+    );
 
     const qrImage = await QRCode.toDataURL(pixCopiaECola);
 
-    // Copy button: em geral funciona melhor se o texto não for enorme
     const canCopyBtn =
       typeof pixCopiaECola === 'string' &&
       pixCopiaECola.length > 0 &&
@@ -38,7 +39,7 @@ async function handlePlanSelect(ctx) {
 
     if (canCopyBtn) {
       inline_keyboard.push([
-        { text: '📋 COPIAR PIX COPIA E COLA', copy_text: { text: pixCopiaECola } }
+        { text: '📋🧹 COPIAR PIX COPIA E COLA', copy_text: { text: pixCopiaECola } }
       ]);
     }
 
@@ -52,7 +53,7 @@ async function handlePlanSelect(ctx) {
         caption:
           `💰 *${plan.name} — R$ ${Number(plan.price).toFixed(2)}*\n\n` +
           `📋 Pix Copia e Cola:\n\`${pixCopiaECola}\`\n\n` +
-          `⏱ Após pagar, clique em *Verificar Pagamento*` +
+          `⏰ Após pagar, clique em *Verificar Pagamento*` +
           (!canCopyBtn ? `\n\n_(Se não aparecer o botão, copie pelo código acima)_` : ''),
         parse_mode: 'Markdown',
         reply_markup: { inline_keyboard }
