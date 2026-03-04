@@ -34,6 +34,7 @@ router.post(['/efi/webhook', '/efi/webhook/pix'], async (req, res) => {
       console.log('\u26a0\ufe0f Pagamento nao encontrado ou ja processado para txid:', txid);
       continue;
     }
+
     const payment = paymentRes.rows[0];
     console.log('\u2705 Pagamento encontrado para telegram_id:', payment.telegram_id);
 
@@ -72,7 +73,9 @@ router.post(['/efi/webhook', '/efi/webhook/pix'], async (req, res) => {
         console.log('\ud83c\udf89 Renovacao enviada para:', payment.telegram_id);
       } else {
         // Novo acesso: cria subscription e gera link unico
-        const inviteLink = await bot.telegram.createChatInviteLink(process.env.GROUP_ID, {
+        const groupId = process.env.TELEGRAM_GROUP_ID;
+        console.log('\ud83d\udd17 Criando invite link para grupo:', groupId);
+        const inviteLink = await bot.telegram.createChatInviteLink(groupId, {
           member_limit: 1,
           expire_date: Math.floor((Date.now() + 3600000) / 1000)
         });
