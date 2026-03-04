@@ -23,8 +23,8 @@ function initBot() {
   bot.start(handleStart);
   bot.command('planos', handlePlanos);
 
-  // Callbacks dos botoes inline
-  bot.action(/^plan_(\d+)$/, handlePlanSelect);     // ✅ FIX: \d (não \\d)
+  // Callbacks dos botoes inline ✅ CORRIGIDO
+  bot.action(/^plan_(\d+)$/, handlePlanSelect);
   bot.action(/^check_pay_(.+)$/, handleCheckPayment);
   bot.action('show_plans', handlePlanos);
 
@@ -44,12 +44,17 @@ function initBot() {
 }
 
 async function startBot() {
-  if (started) return;
-
   initBot();
 
-  // ✅ FIX 409: Mata webhook/polling anterior ANTES de launch
-  await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+  // ✅ SEMPRE limpa polling anterior (fix 409 definitivo)
+  try {
+    await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+    console.log('🧹 Polling anterior limpo');
+  } catch (e) {
+    console.log('⚠️  Ignorando deleteWebhook:', e.message);
+  }
+
+  if (started) return;
 
   await bot.launch({
     dropPendingUpdates: true,
