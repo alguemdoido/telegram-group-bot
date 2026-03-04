@@ -1,7 +1,21 @@
 const router = require('express').Router();
 const db = require('../../db/index');
-const { bot } = require('../../bot/index');
 const { Markup } = require('telegraf');
+const multer = require('multer');
+
+const upload = multer({ storage: multer.memoryStorage() });
+
+function getBotInstance() {
+  // Compatível com: module.exports = { bot } OU { getBot }
+  // (pra não te quebrar caso você tenha mudado o bot/index.js)
+  // eslint-disable-next-line global-require
+  const mod = require('../../bot/index');
+
+  if (mod?.bot?.telegram) return mod.bot;
+  if (typeof mod?.getBot === 'function') return mod.getBot();
+
+  throw new Error('Bot module must export { bot } or { getBot }');
+}
 
 // Middleware de autenticacao
 function requireAuth(req, res, next) {
@@ -30,13 +44,16 @@ router.get('/logout', (req, res) => {
 router.get('/', requireAuth, async (req, res) => {
   const [active, expiring, revenue] = await Promise.all([
     db.query(`SELECT COUNT(*) FROM subscriptions WHERE status = 'active'`),
-    db.query(`SELECT COUNT(*) FROM subscriptions WHERE status = 'active' AND expires_at <= NOW() + INTERVAL '3 days'`),
-    db.query(`SELECT SUM(amount) FROM payments WHERE status = 'paid'`)
+    db.query(
+      `SELECT COUNT(*) FROM subscriptions WHERE status = 'active' AND expires_at <= NOW() + INTERVAL '3 days'`
+    ),
+    db.query(`SELECT SUM(amount) FROM payments WHERE status = 'paid'`),
   ]);
+
   res.render('dashboard', {
     activeCount: active.rows[0].count,
     expiringCount: expiring.rows[0].count,
-    totalRevenue: revenue.rows[0].sum || 0
+    totalRevenue: revenue.rows[0].sum || 0,
   });
 });
 
@@ -69,30 +86,195 @@ router.post('/plans', requireAuth, async (req, res) => {
 });
 
 router.post('/plans/:id/toggle', requireAuth, async (req, res) => {
-  await db.query(`UPDATE plans SET active = NOT active WHERE id = $1`, [req.params.id]);
+  await db.query(`UPDATE plans SET active = NOT active WHERE id = $1`, [
+    req.params.id,
+  ]);
   res.redirect('/admin/plans');
 });
 
 router.post('/plans/:id/delete', requireAuth, async (req, res) => {
-  await db.query(`UPDATE plans SET active = FALSE WHERE id = $1`, [req.params.id]);
+  await db.query(`UPDATE plans SET active = FALSE WHERE id = $1`, [
+    req.params.id,
+  ]);
   res.redirect('/admin/plans');
 });
 
-// Broadcast
-router.get('/broadcast', requireAuth, (req, res) => res.render('broadcast', { result: null }));
+// Helpers Broadcast
+async function buildPlansKeyboard() {
+  const plans = await db.query(
+    `SELECT id, name, price FROM plans WHERE active = TRUE ORDER BY duration_days`
+  );
 
+  if (!plans.rows.length) return null;
+
+  return Markup.inlineKeyboard(
+    plans.rows.map((pl) => [
+      Markup.button.callback(
+        `💎 ${pl.name} - R$ ${Number(pl.price).toFixed(2)}`,
+        `plan_${pl.id}`
+      ),
+    ])
+  );
+}
+
+async function getRecipients(segment, days) {
+  if (segment === 'active') {
+    const r = await db.query(`
+      SELECT DISTINCT u.telegram_id
+      FROM subscriptions s
+      JOIN users u ON u.id = s.user_id
+      WHERE s.status = 'active'
+        AND u.telegram_id IS NOT NULL
+    `);
+    return r.rows.map((x) => x.telegram_id);
+  }
+
+  if (segment === 'expired') {
+    const r = await db.query(`
+      SELECT DISTINCT u.telegram_id
+      FROM subscriptions s
+      JOIN users u ON u.id = s.user_id
+      WHERE s.status = 'expired'
+        AND u.telegram_id IS NOT NULL
+    `);
+    return r.rows.map((x) => x.telegram_id);
+  }
+
+  if (segment === 'expiring') {
+    const r = await db.query(
+      `
+      SELECT DISTINCT u.telegram_id
+      FROM subscriptions s
+      JOIN users u ON u.id = s.user_id
+      WHERE s.status = 'active'
+        AND s.expires_at <= NOW() + ($1 || ' days')::INTERVAL
+        AND s.expires_at > NOW()
+        AND u.telegram_id IS NOT NULL
+    `,
+      [days || 3]
+    );
+    return r.rows.map((x) => x.telegram_id);
+  }
+
+  if (segment === 'never') {
+    // reaproveita a mesma lógica do seu endpoint /broadcast/never-paid
+    const r = await db.query(`
+      SELECT DISTINCT u.telegram_id FROM users u
+      WHERE u.telegram_id IS NOT NULL
+        AND (
+          u.never_bought = TRUE
+          OR EXISTS (
+            SELECT 1 FROM subscriptions s
+            WHERE s.user_id = u.id AND s.status = 'expired'
+              AND NOT EXISTS (
+                SELECT 1 FROM subscriptions s2
+                WHERE s2.user_id = u.id AND s2.status = 'active'
+              )
+          )
+        )
+    `);
+    return r.rows.map((x) => x.telegram_id);
+  }
+
+  // all
+  const r = await db.query(`
+    SELECT telegram_id FROM users
+    WHERE telegram_id IS NOT NULL
+  `);
+  return r.rows.map((x) => x.telegram_id);
+}
+
+// Broadcast
+router.get('/broadcast', requireAuth, (req, res) =>
+  res.render('broadcast', { result: null })
+);
+
+/**
+ * NOVO: endpoint genérico pro form action="/admin/broadcast"
+ * Campos esperados:
+ * - segment: active|expired|expiring|never|all
+ * - message: texto
+ * - days: (se segment=expiring) número (default 3)
+ * - includePlans: "1" pra incluir botões de planos
+ * - photo: arquivo (opcional)
+ */
+router.post(
+  '/broadcast',
+  requireAuth,
+  upload.single('photo'),
+  async (req, res) => {
+    const bot = getBotInstance();
+
+    const {
+      segment = 'active',
+      message = '',
+      days = 3,
+      includePlans = '1',
+    } = req.body;
+
+    const recipients = await getRecipients(segment, Number(days) || 3);
+    const keyboard = includePlans === '1' ? await buildPlansKeyboard() : null;
+
+    let sent = 0;
+    let failed = 0;
+
+    for (const chatId of recipients) {
+      try {
+        if (req.file) {
+          await bot.telegram.sendPhoto(
+            chatId,
+            { source: req.file.buffer },
+            {
+              caption: message,
+              parse_mode: 'Markdown',
+              ...(keyboard ? keyboard : {}),
+            }
+          );
+        } else {
+          await bot.telegram.sendMessage(chatId, message, {
+            parse_mode: 'Markdown',
+            ...(keyboard ? keyboard : {}),
+          });
+        }
+
+        sent++;
+        await new Promise((r) => setTimeout(r, 50)); // evita flood
+      } catch (e) {
+        failed++;
+      }
+    }
+
+    const result = { sent, failed, total: recipients.length, segment };
+
+    // Se tua tela usa fetch/ajax, isso ajuda. Se usa form normal, renderiza.
+    const wantsJson =
+      req.xhr ||
+      (req.headers.accept && req.headers.accept.includes('application/json'));
+
+    if (wantsJson) return res.json(result);
+    return res.render('broadcast', { result });
+  }
+);
+
+// Mantive seus endpoints existentes (caso você já use por AJAX)
 router.post('/broadcast/expiring', requireAuth, async (req, res) => {
+  const bot = getBotInstance();
+
   const { days, message } = req.body;
 
-  const users = await db.query(`
+  const users = await db.query(
+    `
     SELECT u.telegram_id, pl.id as plan_id, pl.name as plan_name
     FROM subscriptions s
     JOIN users u ON u.id = s.user_id
     JOIN plans pl ON pl.id = s.plan_id
     WHERE s.status = 'active'
-    AND s.expires_at <= NOW() + ($1 || ' days')::INTERVAL
-    AND s.expires_at > NOW()
-  `, [days]);
+      AND s.expires_at <= NOW() + ($1 || ' days')::INTERVAL
+      AND s.expires_at > NOW()
+      AND u.telegram_id IS NOT NULL
+  `,
+    [days]
+  );
 
   let sent = 0;
   for (const user of users.rows) {
@@ -100,30 +282,40 @@ router.post('/broadcast/expiring', requireAuth, async (req, res) => {
       await bot.telegram.sendMessage(user.telegram_id, message, {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([
-          [Markup.button.callback(`💳 Renovar ${user.plan_name}`, `plan_${user.plan_id}`)]
-        ])
+          [
+            Markup.button.callback(
+              `💳 Renovar ${user.plan_name}`,
+              `plan_${user.plan_id}`
+            ),
+          ],
+        ]),
       });
       sent++;
-      await new Promise(r => setTimeout(r, 50)); // evita flood
-    } catch (e) { /* usuario bloqueou o bot */ }
+      await new Promise((r) => setTimeout(r, 50));
+    } catch (e) {}
   }
   res.json({ sent });
 });
 
 router.post('/broadcast/never-paid', requireAuth, async (req, res) => {
+  const bot = getBotInstance();
+
   const { message } = req.body;
 
   const users = await db.query(`
     SELECT u.telegram_id FROM users u
-    WHERE u.never_bought = TRUE
-    OR EXISTS (
-      SELECT 1 FROM subscriptions s
-      WHERE s.user_id = u.id AND s.status = 'expired'
-      AND NOT EXISTS (
-        SELECT 1 FROM subscriptions s2
-        WHERE s2.user_id = u.id AND s2.status = 'active'
+    WHERE u.telegram_id IS NOT NULL
+      AND (
+        u.never_bought = TRUE
+        OR EXISTS (
+          SELECT 1 FROM subscriptions s
+          WHERE s.user_id = u.id AND s.status = 'expired'
+          AND NOT EXISTS (
+            SELECT 1 FROM subscriptions s2
+            WHERE s2.user_id = u.id AND s2.status = 'active'
+          )
+        )
       )
-    )
   `);
 
   let sent = 0;
@@ -132,12 +324,12 @@ router.post('/broadcast/never-paid', requireAuth, async (req, res) => {
       await bot.telegram.sendMessage(user.telegram_id, message, {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([
-          [Markup.button.callback('🛒 Ver Planos', 'show_plans')]
-        ])
+          [Markup.button.callback('🛒 Ver Planos', 'show_plans')],
+        ]),
       });
       sent++;
-      await new Promise(r => setTimeout(r, 50));
-    } catch (e) { }
+      await new Promise((r) => setTimeout(r, 50));
+    } catch (e) {}
   }
   res.json({ sent });
 });
