@@ -7,7 +7,7 @@ const efi = new EfiPay({
 
   // certificado em base64 (sem arquivo)
   certificate: process.env.EFI_CERT_BASE64,
-  cert_base64: true, // <- a SDK suporta isso [page:1]
+  cert_base64: true,
 
   sandbox: process.env.EFI_SANDBOX === 'true'
 });
@@ -17,20 +17,14 @@ async function createPixCharge({ value, description }) {
 
   const body = {
     calendario: { expiracao: 3600 },
-    valor: { original: Number(value).toFixed(2) }, // ex "37.00" [page:0]
+    valor: { original: Number(value).toFixed(2) },
     chave: process.env.EFI_PIX_KEY,
     solicitacaoPagador: description || 'Pagamento'
-    // NÃO mande devedor: {}  (omita inteiro) [page:2]
   };
 
   const cob = await efi.pixCreateImmediateCharge({ txid }, body);
 
-  // Em sucesso, a própria resposta pode trazer pixCopiaECola [page:0]
   const pixCopiaECola = cob.pixCopiaECola;
-
-  // Se você também quiser QRCode “texto/ASCII”, dá pra gerar pelo loc.id [page:0]
-  // const qr = await efi.pixGenerateQRCode({ id: cob.loc.id });
-  // const pixCopiaECola = qr.qrcode;
 
   return {
     txid: cob.txid,
@@ -39,4 +33,22 @@ async function createPixCharge({ value, description }) {
   };
 }
 
-module.exports = { createPixCharge };
+async function registerWebhook() {
+  const webhookUrl = process.env.WEBHOOK_BASE_URL + '/efi/webhook';
+  console.log('\ud83d\udd17 Registrando webhook EFI em:', webhookUrl);
+  try {
+    const params = { chave: process.env.EFI_PIX_KEY };
+    const body = { webhookUrl };
+    await efi.pixConfigWebhook(params, body);
+    console.log('\u2705 Webhook EFI registrado com sucesso');
+  } catch (err) {
+    // Erro 409 = webhook ja cadastrado com a mesma URL (ok)
+    if (err?.response?.data?.codigo === 'webhook-invalido' || err?.status === 409) {
+      console.log('\u26a0\ufe0f Webhook ja estava cadastrado (ok)');
+    } else {
+      console.error('\u274c Erro ao registrar webhook EFI:', err?.response?.data || err.message);
+    }
+  }
+}
+
+module.exports = { createPixCharge, registerWebhook };
