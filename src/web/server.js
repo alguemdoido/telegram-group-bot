@@ -6,6 +6,7 @@ const webhookRoutes = require('./routes/webhook');
 
 function startServer() {
   const app = express();
+
   app.set('view engine', 'ejs');
   app.set('views', path.join(__dirname, 'views'));
   app.use(express.json());
@@ -17,8 +18,8 @@ function startServer() {
     saveUninitialized: false
   }));
 
-  // Webhook EFI (sem auth)
-  app.use('/webhook', webhookRoutes);
+  // Webhook EFI na raiz - URL final: /efi/webhook
+  app.use('/', webhookRoutes);
 
   // Painel Admin
   app.use('/admin', adminRoutes);
@@ -28,7 +29,7 @@ function startServer() {
 
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🌐 Painel admin: http://localhost:${PORT}/admin`);
+    console.log(`🌐 Servidor rodando na porta ${PORT}`);
   });
 }
 
