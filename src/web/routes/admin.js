@@ -93,6 +93,76 @@ router.get('/subscribers', requireAuth, async (req, res) => {
   });
 });
 
+// Listar assinantes que vencem em 3 dias
+router.get('/expiring', requireAuth, async (req, res) => {
+  const subs = await db.query(`
+    SELECT s.*, u.telegram_id, u.first_name, u.username, pl.name as plan_name
+    FROM subscriptions s
+    JOIN users u ON u.id = s.user_id
+    JOIN plans pl ON pl.id = s.plan_id
+    WHERE s.status = 'active' AND s.expires_at <= NOW() + INTERVAL '3 days'
+    ORDER BY s.expires_at ASC
+  `);
+  
+  const plans = await db.query(`SELECT id, name, price FROM plans WHERE active = TRUE ORDER BY duration_days`);
+  
+  res.render('expiring', {
+    subscribers: subs.rows,
+    plans: plans.rows,
+    result: null,
+    success: req.query.success || null,
+    error: req.query.error || null,
+  });
+});
+
+// Enviar mensagem de renovação para assinantes expirando
+router.post('/expiring/send', requireAuth, async (req, res) => {
+  const bot = getBotInstance();
+  const { message = '', includePlans = '0' } = req.body;
+  let selectedPlanIds = req.body.planIds || [];
+  if (typeof selectedPlanIds === 'string') selectedPlanIds = [selectedPlanIds];
+  selectedPlanIds = selectedPlanIds.map(Number).filter(Boolean);
+
+  let keyboard = null;
+  if (includePlans === '1' && selectedPlanIds.length > 0) {
+    const plansRes = await db.query(
+      `SELECT id, name, price FROM plans WHERE id = ANY($1) AND active = TRUE ORDER BY duration_days`,
+      [selectedPlanIds]
+    );
+    if (plansRes.rows.length > 0) {
+      keyboard = Markup.inlineKeyboard(
+        plansRes.rows.map((pl) => [
+          Markup.button.callback(`💳 ${pl.name} - R$ ${Number(pl.price).toFixed(2)}`, `plan_${pl.id}`),
+        ])
+      );
+    }
+  }
+
+  const subs = await db.query(`
+    SELECT DISTINCT u.telegram_id
+    FROM subscriptions s
+    JOIN users u ON u.id = s.user_id
+    WHERE s.status = 'active' AND s.expires_at <= NOW() + INTERVAL '3 days'
+  `);
+
+  let sent = 0;
+  let failed = 0;
+  for (const sub of subs.rows) {
+    try {
+      await bot.telegram.sendMessage(sub.telegram_id, message, {
+        parse_mode: 'Markdown',
+        ...(keyboard ? keyboard : {}),
+      });
+      sent++;
+      await new Promise((r) => setTimeout(r, 50));
+    } catch (e) {
+      failed++;
+    }
+  }
+
+  res.redirect(`/admin/expiring?success=sent_${sent}_failed_${failed}`);
+});
+
 // Planos CRUD
 router.get('/plans', requireAuth, async (req, res) => {
   const plans = await db.query(`SELECT * FROM plans ORDER BY duration_days`);
