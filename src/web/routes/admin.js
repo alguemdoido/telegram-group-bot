@@ -185,6 +185,60 @@ router.post(
         );
       }
     }
+// ─── CANCELAR ASSINANTE ────────────────────────────────────────────────────────
+router.post('/subscribers/:id/cancel', requireAuth, async (req, res) => {
+  const { id } = req.params;
+
+  // Busca dados da subscription
+  const subRes = await db.query(`
+    SELECT s.*, u.telegram_id
+    FROM subscriptions s
+    JOIN users u ON u.id = s.user_id
+    WHERE s.id = $1 AND s.status = 'active'
+  `, [id]);
+
+  if (!subRes.rows[0]) {
+    return res.redirect('/admin/subscribers?error=not_found');
+  }
+
+  const sub = subRes.rows[0];
+  const bot = getBotInstance();
+
+  // 1. Expira a subscription no banco
+  await db.query(
+    `UPDATE subscriptions SET status = 'expired' WHERE id = $1`,
+    [id]
+  );
+
+  // 2. Marca is_in_group = FALSE no usuario
+  await db.query(
+    `UPDATE users SET is_in_group = FALSE WHERE telegram_id = $1`,
+    [sub.telegram_id]
+  );
+
+  // 3. Kick + unban do grupo
+  try {
+    await bot.telegram.banChatMember(process.env.TELEGRAM_GROUP_ID, sub.telegram_id);
+    await bot.telegram.unbanChatMember(process.env.TELEGRAM_GROUP_ID, sub.telegram_id);
+    console.log('🚫 Assinante removido do grupo:', sub.telegram_id);
+  } catch (e) {
+    console.log('⚠️ Nao foi possivel remover do grupo (pode ja ter saido):', e.message);
+  }
+
+  // 4. Avisa o usuario
+  try {
+    await bot.telegram.sendMessage(
+      sub.telegram_id,
+      `❌ *Sua assinatura foi cancelada.*\n\nSeu acesso ao grupo foi removido.\n\nSe tiver alguma dúvida, entre em contato com o suporte.`,
+      { parse_mode: 'Markdown' }
+    );
+  } catch (e) {
+    console.log('⚠️ Nao foi possivel enviar mensagem ao usuario:', e.message);
+  }
+
+  res.redirect('/admin/subscribers?success=cancelled');
+});
+
 
     const recipients = await getRecipients(segment);
     let sent = 0;
