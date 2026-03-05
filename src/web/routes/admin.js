@@ -38,9 +38,7 @@ router.get('/logout', (req, res) => {
 router.get('/', requireAuth, async (req, res) => {
   const [active, expiring, revenue] = await Promise.all([
     db.query(`SELECT COUNT(*) FROM subscriptions WHERE status = 'active'`),
-    db.query(
-      `SELECT COUNT(*) FROM subscriptions WHERE status = 'active' AND expires_at <= NOW() + INTERVAL '3 days'`
-    ),
+    db.query(`SELECT COUNT(*) FROM subscriptions WHERE status = 'active' AND expires_at <= NOW() + INTERVAL '3 days'`),
     db.query(`SELECT SUM(amount) FROM payments WHERE status = 'paid'`),
   ]);
   res.render('dashboard', {
@@ -60,7 +58,11 @@ router.get('/subscribers', requireAuth, async (req, res) => {
     WHERE s.status = 'active'
     ORDER BY s.expires_at ASC
   `);
-  res.render('subscribers', { subscribers: subs.rows });
+  res.render('subscribers', {
+    subscribers: subs.rows,
+    success: req.query.success || null,
+    error: req.query.error || null,
+  });
 });
 
 // Planos CRUD
@@ -70,126 +72,22 @@ router.get('/plans', requireAuth, async (req, res) => {
 });
 router.post('/plans', requireAuth, async (req, res) => {
   const { name, duration_days, price } = req.body;
-  await db.query(
-    `INSERT INTO plans (name, duration_days, price) VALUES ($1, $2, $3)`,
-    [name, duration_days, price]
-  );
+  await db.query(`INSERT INTO plans (name, duration_days, price) VALUES ($1, $2, $3)`, [name, duration_days, price]);
   res.redirect('/admin/plans');
 });
 router.post('/plans/:id/toggle', requireAuth, async (req, res) => {
-  await db.query(`UPDATE plans SET active = NOT active WHERE id = $1`, [
-    req.params.id,
-  ]);
+  await db.query(`UPDATE plans SET active = NOT active WHERE id = $1`, [req.params.id]);
   res.redirect('/admin/plans');
 });
 router.post('/plans/:id/delete', requireAuth, async (req, res) => {
-  await db.query(`UPDATE plans SET active = FALSE WHERE id = $1`, [
-    req.params.id,
-  ]);
+  await db.query(`UPDATE plans SET active = FALSE WHERE id = $1`, [req.params.id]);
   res.redirect('/admin/plans');
 });
 
-// ─── BROADCAST ───────────────────────────────────────────────────────────────
-
-// Retorna destinatarios conforme segmento
-async function getRecipients(segment) {
-  // ASSINANTES ATIVOS
-  if (segment === 'active') {
-    const r = await db.query(`
-      SELECT DISTINCT u.telegram_id
-      FROM subscriptions s
-      JOIN users u ON u.id = s.user_id
-      WHERE s.status = 'active'
-      AND u.telegram_id IS NOT NULL
-    `);
-    return r.rows.map((x) => x.telegram_id);
-  }
-
-  // NUNCA ASSINARAM (deram /start mas nunca compraram)
-  if (segment === 'never') {
-    const r = await db.query(`
-      SELECT DISTINCT u.telegram_id FROM users u
-      WHERE u.telegram_id IS NOT NULL
-      AND u.never_bought = TRUE
-      AND NOT EXISTS (
-        SELECT 1 FROM subscriptions s
-        WHERE s.user_id = u.id
-      )
-    `);
-    return r.rows.map((x) => x.telegram_id);
-  }
-
-  // JA ASSINARAM MAS ESTAO VENCIDOS
-  if (segment === 'expired') {
-    const r = await db.query(`
-      SELECT DISTINCT u.telegram_id
-      FROM users u
-      WHERE u.telegram_id IS NOT NULL
-      AND u.never_bought = FALSE
-      AND NOT EXISTS (
-        SELECT 1 FROM subscriptions s
-        WHERE s.user_id = u.id AND s.status = 'active'
-      )
-      AND EXISTS (
-        SELECT 1 FROM subscriptions s
-        WHERE s.user_id = u.id AND s.status = 'expired'
-      )
-    `);
-    return r.rows.map((x) => x.telegram_id);
-  }
-
-  // TODOS
-  const r = await db.query(`SELECT telegram_id FROM users WHERE telegram_id IS NOT NULL`);
-  return r.rows.map((x) => x.telegram_id);
-}
-
-// GET broadcast - renderiza pagina com planos disponiveis
-router.get('/broadcast', requireAuth, async (req, res) => {
-  const plans = await db.query(`SELECT id, name, price FROM plans WHERE active = TRUE ORDER BY duration_days`);
-  res.render('broadcast', { result: null, plans: plans.rows });
-});
-
-// POST broadcast
-router.post(
-  '/broadcast',
-  requireAuth,
-  upload.single('photo'),
-  async (req, res) => {
-    const bot = getBotInstance();
-    const {
-      segment = 'active',
-      message = '',
-      includePlans = '0',
-    } = req.body;
-
-    // IDs dos planos selecionados (pode vir como string ou array)
-    let selectedPlanIds = req.body.planIds || [];
-    if (typeof selectedPlanIds === 'string') selectedPlanIds = [selectedPlanIds];
-    selectedPlanIds = selectedPlanIds.map(Number).filter(Boolean);
-
-    // Monta teclado apenas com os planos escolhidos
-    let keyboard = null;
-    if (includePlans === '1' && selectedPlanIds.length > 0) {
-      const plansRes = await db.query(
-        `SELECT id, name, price FROM plans WHERE id = ANY($1) AND active = TRUE ORDER BY duration_days`,
-        [selectedPlanIds]
-      );
-      if (plansRes.rows.length > 0) {
-        keyboard = Markup.inlineKeyboard(
-          plansRes.rows.map((pl) => [
-            Markup.button.callback(
-              `💳 ${pl.name} - R$ ${Number(pl.price).toFixed(2)}`,
-              `plan_${pl.id}`
-            ),
-          ])
-        );
-      }
-    }
-// ─── CANCELAR ASSINANTE ────────────────────────────────────────────────────────
+// ─── CANCELAR ASSINANTE ──────────────────────────────────────────────────────────────
 router.post('/subscribers/:id/cancel', requireAuth, async (req, res) => {
   const { id } = req.params;
 
-  // Busca dados da subscription
   const subRes = await db.query(`
     SELECT s.*, u.telegram_id
     FROM subscriptions s
@@ -204,32 +102,21 @@ router.post('/subscribers/:id/cancel', requireAuth, async (req, res) => {
   const sub = subRes.rows[0];
   const bot = getBotInstance();
 
-  // 1. Expira a subscription no banco
-  await db.query(
-    `UPDATE subscriptions SET status = 'expired' WHERE id = $1`,
-    [id]
-  );
+  await db.query(`UPDATE subscriptions SET status = 'expired' WHERE id = $1`, [id]);
+  await db.query(`UPDATE users SET is_in_group = FALSE WHERE telegram_id = $1`, [sub.telegram_id]);
 
-  // 2. Marca is_in_group = FALSE no usuario
-  await db.query(
-    `UPDATE users SET is_in_group = FALSE WHERE telegram_id = $1`,
-    [sub.telegram_id]
-  );
-
-  // 3. Kick + unban do grupo
   try {
     await bot.telegram.banChatMember(process.env.TELEGRAM_GROUP_ID, sub.telegram_id);
     await bot.telegram.unbanChatMember(process.env.TELEGRAM_GROUP_ID, sub.telegram_id);
     console.log('🚫 Assinante removido do grupo:', sub.telegram_id);
   } catch (e) {
-    console.log('⚠️ Nao foi possivel remover do grupo (pode ja ter saido):', e.message);
+    console.log('⚠️ Nao foi possivel remover do grupo:', e.message);
   }
 
-  // 4. Avisa o usuario
   try {
     await bot.telegram.sendMessage(
       sub.telegram_id,
-      `❌ *Sua assinatura foi cancelada.*\n\nSeu acesso ao grupo foi removido.\n\nSe tiver alguma dúvida, entre em contato com o suporte.`,
+      `❌ *Sua assinatura foi cancelada.*\n\nSeu acesso ao grupo foi removido.\n\nSe tiver dúvidas, entre em contato com o suporte.`,
       { parse_mode: 'Markdown' }
     );
   } catch (e) {
@@ -239,45 +126,92 @@ router.post('/subscribers/:id/cancel', requireAuth, async (req, res) => {
   res.redirect('/admin/subscribers?success=cancelled');
 });
 
-
-    const recipients = await getRecipients(segment);
-    let sent = 0;
-    let failed = 0;
-
-    for (const chatId of recipients) {
-      try {
-        if (req.file) {
-          await bot.telegram.sendPhoto(
-            chatId,
-            { source: req.file.buffer },
-            {
-              caption: message,
-              parse_mode: 'Markdown',
-              ...(keyboard ? keyboard : {}),
-            }
-          );
-        } else {
-          await bot.telegram.sendMessage(chatId, message, {
-            parse_mode: 'Markdown',
-            ...(keyboard ? keyboard : {}),
-          });
-        }
-        sent++;
-        await new Promise((r) => setTimeout(r, 50));
-      } catch (e) {
-        failed++;
-      }
-    }
-
-    const result = { sent, failed, total: recipients.length, segment };
-    const wantsJson =
-      req.xhr ||
-      (req.headers.accept && req.headers.accept.includes('application/json'));
-    if (wantsJson) return res.json(result);
-
-    const plans = await db.query(`SELECT id, name, price FROM plans WHERE active = TRUE ORDER BY duration_days`);
-    return res.render('broadcast', { result, plans: plans.rows });
+// ─── BROADCAST ───────────────────────────────────────────────────────────────
+async function getRecipients(segment) {
+  if (segment === 'active') {
+    const r = await db.query(`
+      SELECT DISTINCT u.telegram_id FROM subscriptions s
+      JOIN users u ON u.id = s.user_id
+      WHERE s.status = 'active' AND u.telegram_id IS NOT NULL
+    `);
+    return r.rows.map((x) => x.telegram_id);
   }
-);
+  if (segment === 'never') {
+    const r = await db.query(`
+      SELECT DISTINCT u.telegram_id FROM users u
+      WHERE u.telegram_id IS NOT NULL AND u.never_bought = TRUE
+      AND NOT EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = u.id)
+    `);
+    return r.rows.map((x) => x.telegram_id);
+  }
+  if (segment === 'expired') {
+    const r = await db.query(`
+      SELECT DISTINCT u.telegram_id FROM users u
+      WHERE u.telegram_id IS NOT NULL AND u.never_bought = FALSE
+      AND NOT EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = u.id AND s.status = 'active')
+      AND EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = u.id AND s.status = 'expired')
+    `);
+    return r.rows.map((x) => x.telegram_id);
+  }
+  const r = await db.query(`SELECT telegram_id FROM users WHERE telegram_id IS NOT NULL`);
+  return r.rows.map((x) => x.telegram_id);
+}
+
+router.get('/broadcast', requireAuth, async (req, res) => {
+  const plans = await db.query(`SELECT id, name, price FROM plans WHERE active = TRUE ORDER BY duration_days`);
+  res.render('broadcast', { result: null, plans: plans.rows });
+});
+
+router.post('/broadcast', requireAuth, upload.single('photo'), async (req, res) => {
+  const bot = getBotInstance();
+  const { segment = 'active', message = '', includePlans = '0' } = req.body;
+
+  let selectedPlanIds = req.body.planIds || [];
+  if (typeof selectedPlanIds === 'string') selectedPlanIds = [selectedPlanIds];
+  selectedPlanIds = selectedPlanIds.map(Number).filter(Boolean);
+
+  let keyboard = null;
+  if (includePlans === '1' && selectedPlanIds.length > 0) {
+    const plansRes = await db.query(
+      `SELECT id, name, price FROM plans WHERE id = ANY($1) AND active = TRUE ORDER BY duration_days`,
+      [selectedPlanIds]
+    );
+    if (plansRes.rows.length > 0) {
+      keyboard = Markup.inlineKeyboard(
+        plansRes.rows.map((pl) => [
+          Markup.button.callback(`💳 ${pl.name} - R$ ${Number(pl.price).toFixed(2)}`, `plan_${pl.id}`),
+        ])
+      );
+    }
+  }
+
+  const recipients = await getRecipients(segment);
+  let sent = 0;
+  let failed = 0;
+
+  for (const chatId of recipients) {
+    try {
+      if (req.file) {
+        await bot.telegram.sendPhoto(chatId, { source: req.file.buffer }, {
+          caption: message, parse_mode: 'Markdown', ...(keyboard ? keyboard : {}),
+        });
+      } else {
+        await bot.telegram.sendMessage(chatId, message, {
+          parse_mode: 'Markdown', ...(keyboard ? keyboard : {}),
+        });
+      }
+      sent++;
+      await new Promise((r) => setTimeout(r, 50));
+    } catch (e) {
+      failed++;
+    }
+  }
+
+  const result = { sent, failed, total: recipients.length, segment };
+  const wantsJson = req.xhr || (req.headers.accept && req.headers.accept.includes('application/json'));
+  if (wantsJson) return res.json(result);
+  const plans = await db.query(`SELECT id, name, price FROM plans WHERE active = TRUE ORDER BY duration_days`);
+  return res.render('broadcast', { result, plans: plans.rows });
+});
 
 module.exports = router;
