@@ -3,24 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Admin</title>
+  <title>Dashboard - Admin Bot</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #1a1a2e; font-family: Arial, sans-serif; color: #a8b2d8; }
-    nav { background: #16213e; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e94560; }
+    body { background: #0f3460; font-family: 'Segoe UI', sans-serif; color: #e0e0e0; }
+    nav { background: #16213e; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
     nav h1 { color: #e94560; font-size: 1.2rem; }
     nav a { color: #a8b2d8; text-decoration: none; margin-left: 1.5rem; font-size: 0.9rem; }
     nav a:hover { color: #e94560; }
-    .container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
-    .stat-card { background: #16213e; border-radius: 12px; padding: 1.5rem; text-align: center; border: 1px solid #0f3460; }
-    .stat-card .number { font-size: 2.5rem; font-weight: bold; color: #e94560; }
-    .stat-card .label { color: #a8b2d8; font-size: 0.875rem; margin-top: 0.5rem; }
-    h2 { color: #e2e8f0; margin-bottom: 1rem; }
-    .quick-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
-    .quick-link { background: #16213e; border-radius: 10px; padding: 1.2rem; text-align: center; text-decoration: none; color: #a8b2d8; border: 1px solid #0f3460; transition: border-color 0.2s; }
-    .quick-link:hover { border-color: #e94560; color: #e94560; }
-    .quick-link .icon { font-size: 2rem; display: block; margin-bottom: 0.5rem; }
+    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+    .section-title { color: #e2e8f0; margin-bottom: 1.2rem; font-size: 1.15rem; margin-top: 1.5rem; }
+    .section-title:first-child { margin-top: 0; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+    .stat-card {
+      background: #16213e; border-radius: 12px; padding: 1.4rem;
+      border: 1px solid #2a3a6e; position: relative; overflow: hidden;
+    }
+    .stat-card .icon { font-size: 2.2rem; position: absolute; right: 1rem; top: 1rem; opacity: 0.15; }
+    .stat-card .number { font-size: 2rem; font-weight: 700; color: #e94560; line-height: 1; margin-bottom: 0.5rem; }
+    .stat-card .label { font-size: 0.85rem; color: #a8b2d8; }
+    .stat-card.green .number { color: #22c55e; }
+    .stat-card.yellow .number { color: #f59e0b; }
+    .stat-card.blue .number { color: #3b82f6; }
+    .quick-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 2rem; }
+    .quick-link {
+      background: #16213e; border: 1px solid #2a3a6e; border-radius: 10px; padding: 1.2rem;
+      text-decoration: none; display: flex; align-items: center; gap: 1rem; transition: all 0.2s;
+    }
+    .quick-link:hover { background: #1e2a47; border-color: #e94560; }
+    .quick-link .icon { font-size: 1.8rem; }
+    .quick-link .text { color: #a8b2d8; font-size: 0.95rem; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -34,33 +46,73 @@
       <a href="/admin/logout">Sair</a>
     </div>
   </nav>
+
   <div class="container">
-    <div class="stats">
-      <div class="stat-card">
+
+    <h2 class="section-title">👥 Assinantes</h2>
+    <div class="stats-grid">
+      <div class="stat-card green">
+        <div class="icon">✅</div>
         <div class="number"><%= activeCount %></div>
-        <div class="label">✅ Assinantes Ativos</div>
+        <div class="label">Assinantes Ativos</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card yellow">
+        <div class="icon">⚠️</div>
         <div class="number"><%= expiringCount %></div>
-        <div class="label">⚠️ Vencem em 3 dias</div>
-      </div>
-      <div class="stat-card">
-        <div class="number">R$ <%= Number(totalRevenue).toFixed(2) %></div>
-        <div class="label">💰 Receita Total</div>
+        <div class="label">Vencem em 3 dias</div>
       </div>
     </div>
-    <h2>Acesso Rápido</h2>
+
+    <h2 class="section-title">💰 Financeiro</h2>
+    <div class="stats-grid">
+      <div class="stat-card green">
+        <div class="icon">💸</div>
+        <div class="number">R$ <%= Number(activeRevenue).toFixed(2) %></div>
+        <div class="label">Receita de Ativos</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="icon">📈</div>
+        <div class="number">R$ <%= Number(mrr).toFixed(2) %></div>
+        <div class="label">MRR (Receita Recorrente)</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">📅</div>
+        <div class="number">R$ <%= Number(revenueToday).toFixed(2) %></div>
+        <div class="label">Vendas Hoje</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">📆</div>
+        <div class="number">R$ <%= Number(revenueWeek).toFixed(2) %></div>
+        <div class="label">Vendas Últimos 7 dias</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">📆</div>
+        <div class="number">R$ <%= Number(revenueMonth).toFixed(2) %></div>
+        <div class="label">Vendas no Mês</div>
+      </div>
+      <div class="stat-card">
+        <div class="icon">📊</div>
+        <div class="number">R$ <%= Number(totalRevenue).toFixed(2) %></div>
+        <div class="label">Receita Total (Lifetime)</div>
+      </div>
+    </div>
+
+    <h2 class="section-title">🚀 Acesso Rápido</h2>
     <div class="quick-links">
       <a href="/admin/subscribers" class="quick-link">
-        <span class="icon">👥</span>Assinantes
+        <span class="icon">👥</span>
+        <span class="text">Ver Assinantes</span>
       </a>
       <a href="/admin/plans" class="quick-link">
-        <span class="icon">📦</span>Planos
+        <span class="icon">💳</span>
+        <span class="text">Gerenciar Planos</span>
       </a>
       <a href="/admin/broadcast" class="quick-link">
-        <span class="icon">📢</span>Broadcast
+        <span class="icon">📣</span>
+        <span class="text">Enviar Broadcast</span>
       </a>
     </div>
+
   </div>
 </body>
 </html>
