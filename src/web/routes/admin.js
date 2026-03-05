@@ -35,19 +35,47 @@ router.get('/logout', (req, res) => {
 });
 
 // Dashboard
+rout// Dashboard com métricas financeiras completas
 router.get('/', requireAuth, async (req, res) => {
-  const [active, expiring, revenue] = await Promise.all([
+  const [
+    active,
+    expiring,
+    revenueTotal,     // Receita TOTAL (todas pagas)
+    revenueActive,    // Receita apenas de assinaturas ATIVAS
+    revenueToday,
+    revenueWeek,
+    revenueMonth,
+    mrr,              // Monthly Recurring Revenue (soma price dos planos ativos)
+  ] = await Promise.all([
     db.query(`SELECT COUNT(*) FROM subscriptions WHERE status = 'active'`),
     db.query(`SELECT COUNT(*) FROM subscriptions WHERE status = 'active' AND expires_at <= NOW() + INTERVAL '3 days'`),
     db.query(`SELECT SUM(amount) FROM payments WHERE status = 'paid'`),
+    db.query(`
+      SELECT SUM(p.amount) FROM payments p
+      JOIN subscriptions s ON s.id = p.subscription_id
+      WHERE p.status = 'paid' AND s.status = 'active'
+    `),
+    db.query(`SELECT SUM(amount) FROM payments WHERE status = 'paid' AND paid_at >= CURRENT_DATE`),
+    db.query(`SELECT SUM(amount) FROM payments WHERE status = 'paid' AND paid_at >= CURRENT_DATE - INTERVAL '7 days'`),
+    db.query(`SELECT SUM(amount) FROM payments WHERE status = 'paid' AND paid_at >= DATE_TRUNC('month', CURRENT_DATE)`),
+    db.query(`
+      SELECT SUM(pl.price) FROM subscriptions s
+      JOIN plans pl ON pl.id = s.plan_id
+      WHERE s.status = 'active'
+    `),
   ]);
+
   res.render('dashboard', {
     activeCount: active.rows[0].count,
     expiringCount: expiring.rows[0].count,
-    totalRevenue: revenue.rows[0].sum || 0,
+    totalRevenue: revenueTotal.rows[0].sum || 0,
+    activeRevenue: revenueActive.rows[0].sum || 0,
+    revenueToday: revenueToday.rows[0].sum || 0,
+    revenueWeek: revenueWeek.rows[0].sum || 0,
+    revenueMonth: revenueMonth.rows[0].sum || 0,
+    mrr: mrr.rows[0].sum || 0,
   });
 });
-
 // Listar assinantes ativos
 router.get('/subscribers', requireAuth, async (req, res) => {
   const subs = await db.query(`
