@@ -35,7 +35,7 @@ router.get('/logout', (req, res) => {
 });
 
 // Dashboard
-rout// Dashboard com métricas financeiras completas
+// Dashboard com métricas financeiras completas
 router.get('/', requireAuth, async (req, res) => {
   const [
     active,
