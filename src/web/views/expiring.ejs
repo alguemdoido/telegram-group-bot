@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Assinantes Expirando</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui; background: #0f172a; color: #e2e8f0; padding: 20px; }
+    nav { background: #1e293b; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px; }
+    nav a { color: #60a5fa; text-decoration: none; }
+    nav a:hover { text-decoration: underline; }
+    h1 { margin-bottom: 20px; }
+    .alert { padding: 12px; border-radius: 6px; margin-bottom: 20px; }
+    .alert-success { background: #064e3b; color: #6ee7b7; border: 1px solid #10b981; }
+    .alert-error { background: #7f1d1d; color: #fca5a5; border: 1px solid #dc2626; }
+    .form-container { background: #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; font-weight: 500; }
+    textarea { width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; font-family: inherit; min-height: 120px; }
+    input[type="checkbox"] { margin-right: 8px; }
+    .plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; }
+    .plan-checkbox { background: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155; }
+    button { background: #2563eb; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
+    button:hover { background: #1d4ed8; }
+    table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 8px; overflow: hidden; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; }
+    th { background: #334155; font-weight: 600; }
+    tr:last-child td { border-bottom: none; }
+    .expires-soon { color: #fbbf24; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/admin">Dashboard</a>
+    <a href="/admin/subscribers">Assinantes</a>
+    <a href="/admin/expiring" style="color: #fbbf24;">Expirando</a>
+    <a href="/admin/plans">Planos</a>
+    <a href="/admin/broadcast">Broadcast</a>
+    <a href="/admin/logout">Sair</a>
+  </nav>
+
+  <h1>🚨 Assinantes Expirando em 3 Dias (<%= subscribers.length %>)</h1>
+
+  <% if (success) { %>
+    <div class="alert alert-success">
+      <% if (success.startsWith('sent_')) { %>
+        <% const parts = success.split('_'); %>
+        ✅ Mensagem enviada! <%= parts[1] %> enviadas, <%= parts[3] %> falharam.
+      <% } else { %>
+        ✅ <%= success %>
+      <% } %>
+    </div>
+  <% } %>
+  
+  <% if (error) { %>
+    <div class="alert alert-error">
+      ❌ <%= error %>
+    </div>
+  <% } %>
+
+  <% if (subscribers.length > 0) { %>
+    <div class="form-container">
+      <h2>📨 Enviar Mensagem de Renovação</h2>
+      <form method="POST" action="/admin/expiring/send">
+        <div class="form-group">
+          <label>Mensagem (Markdown)</label>
+          <textarea name="message" required placeholder="🔔 Sua assinatura vence em breve!\n\nRenove agora e continue aproveitando o acesso ao grupo VIP."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <input type="checkbox" name="includePlans" value="1">
+            Incluir botões de planos na mensagem
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label>Selecione os planos que deseja oferecer:</label>
+          <div class="plans-grid">
+            <% plans.forEach(plan => { %>
+              <div class="plan-checkbox">
+                <label>
+                  <input type="checkbox" name="planIds" value="<%= plan.id %>">
+                  <%= plan.name %> - R$ <%= Number(plan.price).toFixed(2) %>
+                </label>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+
+        <button type="submit">🚀 Enviar para Todos (<%= subscribers.length %>)</button>
+      </form>
+    </div>
+  <% } %>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Username</th>
+        <th>Plano</th>
+        <th>Expira em</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (subscribers.length === 0) { %>
+        <tr>
+          <td colspan="4" style="text-align: center; padding: 40px;">
+            ✅ Nenhum assinante expirando nos próximos 3 dias!
+          </td>
+        </tr>
+      <% } else { %>
+        <% subscribers.forEach(sub => { %>
+          <tr>
+            <td><%= sub.first_name %></td>
+            <td><%= sub.username || '-' %></td>
+            <td><%= sub.plan_name %></td>
+            <td class="expires-soon"><%= new Date(sub.expires_at).toLocaleString('pt-BR') %></td>
+          </tr>
+        <% }) %>
+      <% } %>
+    </tbody>
+  </table>
+</body>
+</html>
