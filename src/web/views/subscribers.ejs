@@ -15,12 +15,41 @@
     h2 { color: #e2e8f0; margin-bottom: 1rem; }
     table { width: 100%; border-collapse: collapse; background: #16213e; border-radius: 10px; overflow: hidden; }
     th { background: #0f3460; color: #e94560; padding: 0.875rem 1rem; text-align: left; font-size: 0.85rem; }
-    td { padding: 0.875rem 1rem; border-bottom: 1px solid #0f3460; font-size: 0.875rem; }
+    td { padding: 0.75rem 1rem; border-bottom: 1px solid #0f3460; font-size: 0.875rem; vertical-align: middle; }
     tr:last-child td { border-bottom: none; }
     .badge { padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
     .badge-active { background: #22c55e33; color: #22c55e; }
     .badge-warning { background: #f59e0b33; color: #f59e0b; }
     .empty { text-align: center; padding: 3rem; color: #4a5568; }
+    .alert { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.875rem; }
+    .alert-success { background: #22c55e22; color: #22c55e; border: 1px solid #22c55e44; }
+    .alert-error { background: #ef444422; color: #ef4444; border: 1px solid #ef444444; }
+    .btn-cancel {
+      padding: 0.3rem 0.8rem; border: none; border-radius: 6px;
+      background: #ef444422; color: #ef4444; font-size: 0.78rem;
+      font-weight: 700; cursor: pointer; border: 1px solid #ef444444;
+      transition: all 0.2s;
+    }
+    .btn-cancel:hover { background: #ef4444; color: #fff; }
+    /* Modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 100;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #16213e; border-radius: 12px; padding: 1.5rem;
+      max-width: 400px; width: 90%; border: 1px solid #e9456044;
+    }
+    .modal h3 { color: #ef4444; margin-bottom: 0.75rem; }
+    .modal p { font-size: 0.875rem; color: #a8b2d8; margin-bottom: 1.2rem; line-height: 1.5; }
+    .modal .name { color: #e2e8f0; font-weight: bold; }
+    .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
+    .btn-confirm { padding: 0.5rem 1.2rem; border: none; border-radius: 8px; background: #ef4444; color: #fff; font-weight: 700; cursor: pointer; }
+    .btn-confirm:hover { background: #c53030; }
+    .btn-back { padding: 0.5rem 1.2rem; border: 1px solid #2a3a6e; border-radius: 8px; background: transparent; color: #a8b2d8; cursor: pointer; }
+    .btn-back:hover { background: #0f3460; }
   </style>
 </head>
 <body>
@@ -34,10 +63,20 @@
       <a href="/admin/logout">Sair</a>
     </div>
   </nav>
+
   <div class="container">
+
+    <% if (typeof success !== 'undefined' && success === 'cancelled') { %>
+    <div class="alert alert-success">✅ Assinante cancelado e removido do grupo com sucesso.</div>
+    <% } %>
+    <% if (typeof error !== 'undefined' && error === 'not_found') { %>
+    <div class="alert alert-error">❌ Assinatura não encontrada ou já cancelada.</div>
+    <% } %>
+
     <h2>👥 Assinantes Ativos (<%= subscribers.length %>)</h2>
+
     <% if (subscribers.length === 0) { %>
-      <div class="empty">Nenhum assinante ativo no momento.</div>
+    <div class="empty">Nenhum assinante ativo no momento.</div>
     <% } else { %>
     <table>
       <thead>
@@ -48,6 +87,7 @@
           <th>Plano</th>
           <th>Expira em</th>
           <th>Status</th>
+          <th>Ação</th>
         </tr>
       </thead>
       <tbody>
@@ -64,10 +104,15 @@
           <td><%= expires.toLocaleDateString('pt-BR') %> (<%= diffDays %>d)</td>
           <td>
             <% if (diffDays <= 3) { %>
-              <span class="badge badge-warning">⚠️ Expirando</span>
+            <span class="badge badge-warning">⚠️ Expirando</span>
             <% } else { %>
-              <span class="badge badge-active">✅ Ativo</span>
+            <span class="badge badge-active">✅ Ativo</span>
             <% } %>
+          </td>
+          <td>
+            <button class="btn-cancel" onclick="confirmarCancelamento('<%= sub.id %>', '<%= sub.first_name %> <%= sub.username ? '@' + sub.username : '' %>')">
+              🚫 Cancelar
+            </button>
           </td>
         </tr>
         <% }); %>
@@ -75,5 +120,40 @@
     </table>
     <% } %>
   </div>
+
+  <!-- Modal de confirmacao -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <h3>🚨 Cancelar Assinatura</h3>
+      <p>Você tem certeza que deseja cancelar a assinatura de <span class="name" id="modal-name"></span>?<br><br>O usuário será <strong>removido do grupo</strong> e receeberá uma mensagem de notificação.</p>
+      <div class="modal-actions">
+        <button class="btn-back" onclick="fecharModal()">Voltar</button>
+        <form id="cancel-form" method="POST">
+          <button type="submit" class="btn-confirm">🚫 Confirmar Cancelamento</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Checa query params para mostrar alertas
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') === 'cancelled') {
+      document.querySelector('.alert-success') && (document.querySelector('.alert-success').style.display = 'block');
+    }
+
+    function confirmarCancelamento(id, nome) {
+      document.getElementById('modal-name').textContent = nome;
+      document.getElementById('cancel-form').action = '/admin/subscribers/' + id + '/cancel';
+      document.getElementById('modal').classList.add('active');
+    }
+    function fecharModal() {
+      document.getElementById('modal').classList.remove('active');
+    }
+    // Fecha ao clicar fora
+    document.getElementById('modal').addEventListener('click', function(e) {
+      if (e.target === this) fecharModal();
+    });
+  </script>
 </body>
 </html>
