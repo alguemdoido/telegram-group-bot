@@ -132,6 +132,7 @@ router.post('/subscribers/:id/cancel', requireAuth, async (req, res) => {
 
   await db.query(`UPDATE subscriptions SET status = 'expired' WHERE id = $1`, [id]);
   await db.query(`UPDATE users SET is_in_group = FALSE WHERE telegram_id = $1`, [sub.telegram_id]);
+    await db.query(`UPDATE payments SET status = 'cancelled' WHERE subscription_id = $1`, [id]);
 
   try {
     await bot.telegram.banChatMember(process.env.TELEGRAM_GROUP_ID, sub.telegram_id);
