@@ -31,6 +31,13 @@
       transition: all 0.2s;
     }
     .btn-cancel:hover { background: #ef4444; color: #fff; }
+    .btn-edit {
+      padding: 0.3rem 0.8rem; border: none; border-radius: 6px;
+      background: #3b82f622; color: #3b82f6; font-size: 0.78rem;
+      font-weight: 700; cursor: pointer; border: 1px solid #3b82f644;
+      transition: all 0.2s; margin-right: 0.4rem;
+    }
+    .btn-edit:hover { background: #3b82f6; color: #fff; }
     /* Modal */
     .modal-overlay {
       display: none; position: fixed; inset: 0;
@@ -50,6 +57,16 @@
     .btn-confirm:hover { background: #c53030; }
     .btn-back { padding: 0.5rem 1.2rem; border: 1px solid #2a3a6e; border-radius: 8px; background: transparent; color: #a8b2d8; cursor: pointer; }
     .btn-back:hover { background: #0f3460; }
+    /* Modal editar vencimento */
+    .modal-edit { border: 1px solid #3b82f644; }
+    .modal-edit h3 { color: #3b82f6; }
+    .input-date {
+      width: 100%; padding: 0.6rem 0.8rem; border-radius: 8px;
+      background: #0f3460; border: 1px solid #2a3a6e; color: #e2e8f0;
+      font-size: 0.9rem; margin-bottom: 1.2rem;
+    }
+    .btn-save { padding: 0.5rem 1.2rem; border: none; border-radius: 8px; background: #3b82f6; color: #fff; font-weight: 700; cursor: pointer; }
+    .btn-save:hover { background: #2563eb; }
   </style>
 </head>
 <body>
@@ -63,18 +80,20 @@
       <a href="/admin/logout">Sair</a>
     </div>
   </nav>
-
   <div class="container">
-
     <% if (typeof success !== 'undefined' && success === 'cancelled') { %>
     <div class="alert alert-success">✅ Assinante cancelado e removido do grupo com sucesso.</div>
+    <% } %>
+    <% if (typeof success !== 'undefined' && success === 'expiry_updated') { %>
+    <div class="alert alert-success">📅 Vencimento atualizado com sucesso.</div>
     <% } %>
     <% if (typeof error !== 'undefined' && error === 'not_found') { %>
     <div class="alert alert-error">❌ Assinatura não encontrada ou já cancelada.</div>
     <% } %>
-
+    <% if (typeof error !== 'undefined' && error === 'invalid_date') { %>
+    <div class="alert alert-error">❌ Data inválida. Tente novamente.</div>
+    <% } %>
     <h2>👥 Assinantes Ativos (<%= subscribers.length %>)</h2>
-
     <% if (subscribers.length === 0) { %>
     <div class="empty">Nenhum assinante ativo no momento.</div>
     <% } else { %>
@@ -110,6 +129,9 @@
             <% } %>
           </td>
           <td>
+            <button class="btn-edit" onclick="abrirEditarVencimento('<%= sub.id %>', '<%= sub.first_name %>', '<%= new Date(sub.expires_at).toISOString().split('T')[0] %>')">
+              📅 Vencimento
+            </button>
             <button class="btn-cancel" onclick="confirmarCancelamento('<%= sub.id %>', '<%= sub.first_name %> <%= sub.username ? '@' + sub.username : '' %>')">
               🚫 Cancelar
             </button>
@@ -121,7 +143,7 @@
     <% } %>
   </div>
 
-  <!-- Modal de confirmacao -->
+  <!-- Modal de confirmacao cancelamento -->
   <div class="modal-overlay" id="modal">
     <div class="modal">
       <h3>🚨 Cancelar Assinatura</h3>
@@ -135,12 +157,23 @@
     </div>
   </div>
 
+  <!-- Modal editar vencimento -->
+  <div class="modal-overlay" id="modal-edit">
+    <div class="modal modal-edit">
+      <h3>📅 Alterar Vencimento</h3>
+      <p>Nova data de vencimento para <span class="name" id="edit-modal-name"></span>:</p>
+      <form id="edit-form" method="POST">
+        <input type="date" class="input-date" name="expires_at" id="edit-date" required>
+        <div class="modal-actions">
+          <button type="button" class="btn-back" onclick="fecharModalEdit()">Voltar</button>
+          <button type="submit" class="btn-save">💾 Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
-    // Checa query params para mostrar alertas
     const params = new URLSearchParams(window.location.search);
-    if (params.get('success') === 'cancelled') {
-      document.querySelector('.alert-success') && (document.querySelector('.alert-success').style.display = 'block');
-    }
 
     function confirmarCancelamento(id, nome) {
       document.getElementById('modal-name').textContent = nome;
@@ -150,9 +183,21 @@
     function fecharModal() {
       document.getElementById('modal').classList.remove('active');
     }
-    // Fecha ao clicar fora
     document.getElementById('modal').addEventListener('click', function(e) {
       if (e.target === this) fecharModal();
+    });
+
+    function abrirEditarVencimento(id, nome, dataAtual) {
+      document.getElementById('edit-modal-name').textContent = nome;
+      document.getElementById('edit-date').value = dataAtual;
+      document.getElementById('edit-form').action = '/admin/subscribers/' + id + '/expiry';
+      document.getElementById('modal-edit').classList.add('active');
+    }
+    function fecharModalEdit() {
+      document.getElementById('modal-edit').classList.remove('active');
+    }
+    document.getElementById('modal-edit').addEventListener('click', function(e) {
+      if (e.target === this) fecharModalEdit();
     });
   </script>
 </body>
