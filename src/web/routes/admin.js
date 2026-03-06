@@ -2,7 +2,6 @@ const router = require('express').Router();
 const db = require('../../db/index');
 const { Markup } = require('telegraf');
 const multer = require('multer');
-
 const upload = multer({ storage: multer.memoryStorage() });
 
 function getBotInstance() {
@@ -35,17 +34,16 @@ router.get('/logout', (req, res) => {
 });
 
 // Dashboard
-// Dashboard com métricas financeiras completas
 router.get('/', requireAuth, async (req, res) => {
   const [
     active,
     expiring,
-    revenueTotal,     // Receita TOTAL (todas pagas)
-    revenueActive,    // Receita apenas de assinaturas ATIVAS
+    revenueTotal,
+    revenueActive,
     revenueToday,
     revenueWeek,
     revenueMonth,
-    mrr,              // Monthly Recurring Revenue (soma price dos planos ativos)
+    mrr,
   ] = await Promise.all([
     db.query(`SELECT COUNT(*) FROM subscriptions WHERE status = 'active'`),
     db.query(`SELECT COUNT(*) FROM subscriptions WHERE status = 'active' AND expires_at <= NOW() + INTERVAL '3 days'`),
@@ -76,6 +74,7 @@ router.get('/', requireAuth, async (req, res) => {
     mrr: mrr.rows[0].sum || 0,
   });
 });
+
 // Listar assinantes ativos
 router.get('/subscribers', requireAuth, async (req, res) => {
   const subs = await db.query(`
@@ -159,7 +158,6 @@ router.post('/expiring/send', requireAuth, async (req, res) => {
       failed++;
     }
   }
-
   res.redirect(`/admin/expiring?success=sent_${sent}_failed_${failed}`);
 });
 
@@ -168,15 +166,18 @@ router.get('/plans', requireAuth, async (req, res) => {
   const plans = await db.query(`SELECT * FROM plans ORDER BY duration_days`);
   res.render('plans', { plans: plans.rows });
 });
+
 router.post('/plans', requireAuth, async (req, res) => {
   const { name, duration_days, price } = req.body;
   await db.query(`INSERT INTO plans (name, duration_days, price) VALUES ($1, $2, $3)`, [name, duration_days, price]);
   res.redirect('/admin/plans');
 });
+
 router.post('/plans/:id/toggle', requireAuth, async (req, res) => {
   await db.query(`UPDATE plans SET active = NOT active WHERE id = $1`, [req.params.id]);
   res.redirect('/admin/plans');
 });
+
 router.post('/plans/:id/delete', requireAuth, async (req, res) => {
   await db.query(`UPDATE plans SET active = FALSE WHERE id = $1`, [req.params.id]);
   res.redirect('/admin/plans');
@@ -185,7 +186,6 @@ router.post('/plans/:id/delete', requireAuth, async (req, res) => {
 // ─── CANCELAR ASSINANTE ──────────────────────────────────────────────────────────────
 router.post('/subscribers/:id/cancel', requireAuth, async (req, res) => {
   const { id } = req.params;
-
   const subRes = await db.query(`
     SELECT s.*, u.telegram_id
     FROM subscriptions s
@@ -202,7 +202,7 @@ router.post('/subscribers/:id/cancel', requireAuth, async (req, res) => {
 
   await db.query(`UPDATE subscriptions SET status = 'expired' WHERE id = $1`, [id]);
   await db.query(`UPDATE users SET is_in_group = FALSE WHERE telegram_id = $1`, [sub.telegram_id]);
-    await db.query(`UPDATE payments SET status = 'cancelled' WHERE subscription_id = $1`, [id]);
+  await db.query(`UPDATE payments SET status = 'cancelled' WHERE subscription_id = $1`, [id]);
 
   try {
     await bot.telegram.banChatMember(process.env.TELEGRAM_GROUP_ID, sub.telegram_id);
@@ -215,7 +215,11 @@ router.post('/subscribers/:id/cancel', requireAuth, async (req, res) => {
   try {
     await bot.telegram.sendMessage(
       sub.telegram_id,
-      `❌ *Sua assinatura foi cancelada.*\n\nSeu acesso ao grupo foi removido.\n\nSe tiver dúvidas, entre em contato com o suporte.`,
+      `❌ *Sua assinatura foi cancelada.*
+
+Seu acesso ao grupo foi removido.
+
+Se tiver dúvidas, entre em contato com o suporte.`,
       { parse_mode: 'Markdown' }
     );
   } catch (e) {
@@ -223,6 +227,51 @@ router.post('/subscribers/:id/cancel', requireAuth, async (req, res) => {
   }
 
   res.redirect('/admin/subscribers?success=cancelled');
+});
+
+// ─── ALTERAR VENCIMENTO ────────────────────────────────────────────────────────────
+router.post('/subscribers/:id/expiry', requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const { expires_at } = req.body;
+
+  if (!expires_at) {
+    return res.redirect('/admin/subscribers?error=invalid_date');
+  }
+
+  const subRes = await db.query(
+    `SELECT s.*, u.telegram_id, u.first_name FROM subscriptions s
+     JOIN users u ON u.id = s.user_id
+     WHERE s.id = $1 AND s.status = 'active'`,
+    [id]
+  );
+
+  if (!subRes.rows[0]) {
+    return res.redirect('/admin/subscribers?error=not_found');
+  }
+
+  const sub = subRes.rows[0];
+  const newExpiry = new Date(expires_at + 'T23:59:59');
+
+  await db.query(
+    `UPDATE subscriptions SET expires_at = $1 WHERE id = $2`,
+    [newExpiry, id]
+  );
+
+  try {
+    const bot = getBotInstance();
+    const dataFormatada = newExpiry.toLocaleDateString('pt-BR');
+    await bot.telegram.sendMessage(
+      sub.telegram_id,
+      `📅 *Seu vencimento foi atualizado!*
+
+Olá ${sub.first_name}, sua assinatura agora expira em *${dataFormatada}*. ✅`,
+      { parse_mode: 'Markdown' }
+    );
+  } catch (e) {
+    console.log('⚠️ Não foi possível notificar usuário:', e.message);
+  }
+
+  res.redirect('/admin/subscribers?success=expiry_updated');
 });
 
 // ─── BROADCAST ───────────────────────────────────────────────────────────────
@@ -264,7 +313,6 @@ router.get('/broadcast', requireAuth, async (req, res) => {
 router.post('/broadcast', requireAuth, upload.single('photo'), async (req, res) => {
   const bot = getBotInstance();
   const { segment = 'active', message = '', includePlans = '0' } = req.body;
-
   let selectedPlanIds = req.body.planIds || [];
   if (typeof selectedPlanIds === 'string') selectedPlanIds = [selectedPlanIds];
   selectedPlanIds = selectedPlanIds.map(Number).filter(Boolean);
@@ -309,6 +357,7 @@ router.post('/broadcast', requireAuth, upload.single('photo'), async (req, res) 
   const result = { sent, failed, total: recipients.length, segment };
   const wantsJson = req.xhr || (req.headers.accept && req.headers.accept.includes('application/json'));
   if (wantsJson) return res.json(result);
+
   const plans = await db.query(`SELECT id, name, price FROM plans WHERE active = TRUE ORDER BY duration_days`);
   return res.render('broadcast', { result, plans: plans.rows });
 });
