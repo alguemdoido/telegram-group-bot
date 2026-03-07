@@ -1,204 +1,259 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Assinantes</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #1a1a2e; font-family: Arial, sans-serif; color: #a8b2d8; }
-    nav { background: #16213e; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e94560; }
-    nav h1 { color: #e94560; font-size: 1.2rem; }
-    nav a { color: #a8b2d8; text-decoration: none; margin-left: 1.5rem; font-size: 0.9rem; }
-    nav a:hover { color: #e94560; }
-    .container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
-    h2 { color: #e2e8f0; margin-bottom: 1rem; }
-    table { width: 100%; border-collapse: collapse; background: #16213e; border-radius: 10px; overflow: hidden; }
-    th { background: #0f3460; color: #e94560; padding: 0.875rem 1rem; text-align: left; font-size: 0.85rem; }
-    td { padding: 0.75rem 1rem; border-bottom: 1px solid #0f3460; font-size: 0.875rem; vertical-align: middle; }
-    tr:last-child td { border-bottom: none; }
-    .badge { padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
-    .badge-active { background: #22c55e33; color: #22c55e; }
-    .badge-warning { background: #f59e0b33; color: #f59e0b; }
-    .empty { text-align: center; padding: 3rem; color: #4a5568; }
-    .alert { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.875rem; }
-    .alert-success { background: #22c55e22; color: #22c55e; border: 1px solid #22c55e44; }
-    .alert-error { background: #ef444422; color: #ef4444; border: 1px solid #ef444444; }
-    .btn-cancel {
-      padding: 0.3rem 0.8rem; border: none; border-radius: 6px;
-      background: #ef444422; color: #ef4444; font-size: 0.78rem;
-      font-weight: 700; cursor: pointer; border: 1px solid #ef444444;
-      transition: all 0.2s;
-    }
-    .btn-cancel:hover { background: #ef4444; color: #fff; }
-    .btn-edit {
-      padding: 0.3rem 0.8rem; border: none; border-radius: 6px;
-      background: #3b82f622; color: #3b82f6; font-size: 0.78rem;
-      font-weight: 700; cursor: pointer; border: 1px solid #3b82f644;
-      transition: all 0.2s; margin-right: 0.4rem;
-    }
-    .btn-edit:hover { background: #3b82f6; color: #fff; }
-    /* Modal */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.7); z-index: 100;
-      align-items: center; justify-content: center;
-    }
-    .modal-overlay.active { display: flex; }
-    .modal {
-      background: #16213e; border-radius: 12px; padding: 1.5rem;
-      max-width: 400px; width: 90%; border: 1px solid #e9456044;
-    }
-    .modal h3 { color: #ef4444; margin-bottom: 0.75rem; }
-    .modal p { font-size: 0.875rem; color: #a8b2d8; margin-bottom: 1.2rem; line-height: 1.5; }
-    .modal .name { color: #e2e8f0; font-weight: bold; }
-    .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
-    .btn-confirm { padding: 0.5rem 1.2rem; border: none; border-radius: 8px; background: #ef4444; color: #fff; font-weight: 700; cursor: pointer; }
-    .btn-confirm:hover { background: #c53030; }
-    .btn-back { padding: 0.5rem 1.2rem; border: 1px solid #2a3a6e; border-radius: 8px; background: transparent; color: #a8b2d8; cursor: pointer; }
-    .btn-back:hover { background: #0f3460; }
-    /* Modal editar vencimento */
-    .modal-edit { border: 1px solid #3b82f644; }
-    .modal-edit h3 { color: #3b82f6; }
-    .input-date {
-      width: 100%; padding: 0.6rem 0.8rem; border-radius: 8px;
-      background: #0f3460; border: 1px solid #2a3a6e; color: #e2e8f0;
-      font-size: 0.9rem; margin-bottom: 1.2rem;
-    }
-    .btn-save { padding: 0.5rem 1.2rem; border: none; border-radius: 8px; background: #3b82f6; color: #fff; font-weight: 700; cursor: pointer; }
-    .btn-save:hover { background: #2563eb; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assinantes</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #1a1a2e; font-family: Arial, sans-serif; color: #a8b2d8; }
+        nav { background: #16213e; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e94560; }
+        nav h1 { color: #e94560; font-size: 1.2rem; }
+        nav a { color: #a8b2d8; text-decoration: none; margin-left: 1.5rem; font-size: 0.9rem; }
+        nav a:hover { color: #e94560; }
+        .container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+        h2 { color: #e2e8f0; margin-bottom: 1rem; }
+        table { width: 100%; border-collapse: collapse; background: #16213e; border-radius: 10px; overflow: hidden; }
+        th { background: #0f3460; color: #e94560; padding: 0.875rem 1rem; text-align: left; font-size: 0.85rem; }
+        td { padding: 0.75rem 1rem; border-bottom: 1px solid #0f3460; font-size: 0.875rem; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        .badge { padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
+        .badge-active { background: #22c55e33; color: #22c55e; }
+        .badge-warning { background: #f59e0b33; color: #f59e0b; }
+        .empty { text-align: center; padding: 3rem; color: #4a5568; }
+        .alert { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.875rem; }
+        .alert-success { background: #22c55e22; color: #22c55e; border: 1px solid #22c55e44; }
+        .alert-error { background: #ef444422; color: #ef4444; border: 1px solid #ef444444; }
+        
+        .btn-cancel {
+            padding: 0.3rem 0.8rem; border: none; border-radius: 6px;
+            background: #ef444422; color: #ef4444; font-size: 0.78rem;
+            font-weight: 700; cursor: pointer; border: 1px solid #ef444444;
+            transition: all 0.2s;
+        }
+        .btn-cancel:hover { background: #ef4444; color: #fff; }
+        
+        .btn-edit {
+            padding: 0.3rem 0.8rem; border: none; border-radius: 6px;
+            background: #3b82f622; color: #3b82f6; font-size: 0.78rem;
+            font-weight: 700; cursor: pointer; border: 1px solid #3b82f644;
+            transition: all 0.2s; margin-right: 0.4rem;
+        }
+        .btn-edit:hover { background: #3b82f6; color: #fff; }
+
+        .btn-resend {
+            padding: 0.3rem 0.8rem; border: none; border-radius: 6px;
+            background: #10b98122; color: #10b981; font-size: 0.78rem;
+            font-weight: 700; cursor: pointer; border: 1px solid #10b98144;
+            transition: all 0.2s; margin-right: 0.4rem;
+        }
+        .btn-resend:hover { background: #10b981; color: #fff; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.7); z-index: 100;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #16213e; border-radius: 12px; padding: 1.5rem;
+            max-width: 400px; width: 90%; border: 1px solid #e9456044;
+        }
+        .modal h3 { color: #ef4444; margin-bottom: 0.75rem; }
+        .modal p { font-size: 0.875rem; color: #a8b2d8; margin-bottom: 1.2rem; line-height: 1.5; }
+        .modal .name { color: #e2e8f0; font-weight: bold; }
+        .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
+        .btn-confirm { padding: 0.5rem 1.2rem; border: none; border-radius: 8px; background: #ef4444; color: #fff; font-weight: 700; cursor: pointer; }
+        .btn-confirm:hover { background: #c53030; }
+        .btn-back { padding: 0.5rem 1.2rem; border: 1px solid #2a3a6e; border-radius: 8px; background: transparent; color: #a8b2d8; cursor: pointer; }
+        .btn-back:hover { background: #0f3460; }
+
+        /* Modal editar vencimento */
+        .modal-edit { border: 1px solid #3b82f644; }
+        .modal-edit h3 { color: #3b82f6; }
+        .input-date {
+            width: 100%; padding: 0.6rem 0.8rem; border-radius: 8px;
+            background: #0f3460; border: 1px solid #2a3a6e; color: #e2e8f0;
+            font-size: 0.9rem; margin-bottom: 1.2rem;
+        }
+        .btn-save { padding: 0.5rem 1.2rem; border: none; border-radius: 8px; background: #3b82f6; color: #fff; font-weight: 700; cursor: pointer; }
+        .btn-save:hover { background: #2563eb; }
+
+        /* Modal Reenviar Link */
+        .modal-resend { border: 1px solid #10b98144; }
+        .modal-resend h3 { color: #10b981; }
+        .btn-resend-confirm { padding: 0.5rem 1.2rem; border: none; border-radius: 8px; background: #10b981; color: #fff; font-weight: 700; cursor: pointer; }
+        .btn-resend-confirm:hover { background: #059669; }
+    </style>
 </head>
 <body>
-  <nav>
-    <h1>🤖 Admin Bot</h1>
-    <div>
-      <a href="/admin">Dashboard</a>
-      <a href="/admin/subscribers">Assinantes</a>
-      <a href="/admin/plans">Planos</a>
-      <a href="/admin/broadcast">Broadcast</a>
-      <a href="/admin/logout">Sair</a>
-    </div>
-  </nav>
-  <div class="container">
-    <% if (typeof success !== 'undefined' && success === 'cancelled') { %>
-    <div class="alert alert-success">✅ Assinante cancelado e removido do grupo com sucesso.</div>
-    <% } %>
-    <% if (typeof success !== 'undefined' && success === 'expiry_updated') { %>
-    <div class="alert alert-success">📅 Vencimento atualizado com sucesso.</div>
-    <% } %>
-    <% if (typeof error !== 'undefined' && error === 'not_found') { %>
-    <div class="alert alert-error">❌ Assinatura não encontrada ou já cancelada.</div>
-    <% } %>
-    <% if (typeof error !== 'undefined' && error === 'invalid_date') { %>
-    <div class="alert alert-error">❌ Data inválida. Tente novamente.</div>
-    <% } %>
-    <h2>👥 Assinantes Ativos (<%= subscribers.length %>)</h2>
-    <% if (subscribers.length === 0) { %>
-    <div class="empty">Nenhum assinante ativo no momento.</div>
-    <% } else { %>
-    <table>
-      <thead>
-        <tr>
-          <th>Nome</th>
-          <th>Username</th>
-          <th>Telegram ID</th>
-          <th>Plano</th>
-          <th>Expira em</th>
-          <th>Status</th>
-          <th>Ação</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% subscribers.forEach(sub => {
-          const expires = new Date(sub.expires_at);
-          const now = new Date();
-          const diffDays = Math.ceil((expires - now) / 86400000);
-        %>
-        <tr>
-          <td><%= sub.first_name %></td>
-          <td>@<%= sub.username || '-' %></td>
-          <td><%= sub.telegram_id %></td>
-          <td><%= sub.plan_name %></td>
-          <td><%= expires.toLocaleDateString('pt-BR') %> (<%= diffDays %>d)</td>
-          <td>
-            <% if (diffDays <= 3) { %>
-            <span class="badge badge-warning">⚠️ Expirando</span>
-            <% } else { %>
-            <span class="badge badge-active">✅ Ativo</span>
-            <% } %>
-          </td>
-          <td>
-            <button class="btn-edit" onclick="abrirEditarVencimento('<%= sub.id %>', '<%= sub.first_name %>', '<%= new Date(sub.expires_at).toISOString().split('T')[0] %>')">
-              📅 Vencimento
-            </button>
-            <button class="btn-cancel" onclick="confirmarCancelamento('<%= sub.id %>', '<%= sub.first_name %> <%= sub.username ? '@' + sub.username : '' %>')">
-              🚫 Cancelar
-            </button>
-          </td>
-        </tr>
-        <% }); %>
-      </tbody>
-    </table>
-    <% } %>
-  </div>
-
-  <!-- Modal de confirmacao cancelamento -->
-  <div class="modal-overlay" id="modal">
-    <div class="modal">
-      <h3>🚨 Cancelar Assinatura</h3>
-      <p>Você tem certeza que deseja cancelar a assinatura de <span class="name" id="modal-name"></span>?<br><br>O usuário será <strong>removido do grupo</strong> e receeberá uma mensagem de notificação.</p>
-      <div class="modal-actions">
-        <button class="btn-back" onclick="fecharModal()">Voltar</button>
-        <form id="cancel-form" method="POST">
-          <button type="submit" class="btn-confirm">🚫 Confirmar Cancelamento</button>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal editar vencimento -->
-  <div class="modal-overlay" id="modal-edit">
-    <div class="modal modal-edit">
-      <h3>📅 Alterar Vencimento</h3>
-      <p>Nova data de vencimento para <span class="name" id="edit-modal-name"></span>:</p>
-      <form id="edit-form" method="POST">
-        <input type="date" class="input-date" name="expires_at" id="edit-date" required>
-        <div class="modal-actions">
-          <button type="button" class="btn-back" onclick="fecharModalEdit()">Voltar</button>
-          <button type="submit" class="btn-save">💾 Salvar</button>
+    <nav>
+        <h1>\ud83e\udd16 Admin Bot</h1>
+        <div>
+            <a href="/admin">Dashboard</a>
+            <a href="/admin/subscribers">Assinantes</a>
+            <a href="/admin/plans">Planos</a>
+            <a href="/admin/broadcast">Broadcast</a>
+            <a href="/admin/logout">Sair</a>
         </div>
-      </form>
+    </nav>
+
+    <div class="container">
+        <% if (typeof success !== 'undefined' && success === 'cancelled') { %>
+            <div class="alert alert-success">\u2705 Assinante cancelado e removido do grupo com sucesso.</div>
+        <% } %>
+        <% if (typeof success !== 'undefined' && success === 'expiry_updated') { %>
+            <div class="alert alert-success">\ud83d\udcc5 Vencimento atualizado com sucesso.</div>
+        <% } %>
+        <% if (typeof success !== 'undefined' && success === 'link_resent') { %>
+            <div class="alert alert-success">\ud83d\udd17 Novo link de convite enviado com sucesso.</div>
+        <% } %>
+        
+        <% if (typeof error !== 'undefined' && error === 'not_found') { %>
+            <div class="alert alert-error">\u274c Assinatura n\u00e3o encontrada ou j\u00e1 cancelada.</div>
+        <% } %>
+        <% if (typeof error !== 'undefined' && error === 'invalid_date') { %>
+            <div class="alert alert-error">\u274c Data inv\u00e1lida. Tente novamente.</div>
+        <% } %>
+        <% if (typeof error !== 'undefined' && error === 'resend_failed') { %>
+            <div class="alert alert-error">\u274c Falha ao reenviar link. O usu\u00e1rio pode n\u00e3o ter iniciado o bot.</div>
+        <% } %>
+
+        <h2>\ud83d\udc65 Assinantes Ativos (<%= subscribers.length %>)</h2>
+
+        <% if (subscribers.length === 0) { %>
+            <div class="empty">Nenhum assinante ativo no momento.</div>
+        <% } else { %>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Username</th>
+                        <th>Telegram ID</th>
+                        <th>Plano</th>
+                        <th>Expira em</th>
+                        <th>Status</th>
+                        <th>A\u00e7\u00e3o</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% subscribers.forEach(sub => { 
+                        const expires = new Date(sub.expires_at);
+                        const now = new Date();
+                        const diffDays = Math.ceil((expires - now) / 86400000);
+                    %>
+                        <tr>
+                            <td><%= sub.first_name %></td>
+                            <td>@<%= sub.username || '-' %></td>
+                            <td><%= sub.telegram_id %></td>
+                            <td><%= sub.plan_name %></td>
+                            <td><%= expires.toLocaleDateString('pt-BR') %> (<%= diffDays %>d)</td>
+                            <td>
+                                <% if (diffDays <= 3) { %>
+                                    <span class="badge badge-warning">\u26a0\ufe0f Expirando</span>
+                                <% } else { %>
+                                    <span class="badge badge-active">\u2705 Ativo</span>
+                                <% } %>
+                            </td>
+                            <td>
+                                <button class="btn-resend" onclick="confirmarReenvio('<%= sub.id %>', '<%= sub.first_name %>')">
+                                    \ud83d\udd17 Link
+                                </button>
+                                <button class="btn-edit" onclick="abrirEditarVencimento('<%= sub.id %>', '<%= sub.first_name %>', '<%= new Date(sub.expires_at).toISOString().split('T')[0] %>')">
+                                    \ud83d\udcc5 Venc
+                                </button>
+                                <button class="btn-cancel" onclick="confirmarCancelamento('<%= sub.id %>', '<%= sub.first_name %> <%= sub.username ? '@' + sub.username : '' %>')">
+                                    \ud83d\udeab Sair
+                                </button>
+                            </td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        <% } %>
     </div>
-  </div>
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
+    <!-- Modal de confirmacao cancelamento -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <h3>\ud83d\udea8 Cancelar Assinatura</h3>
+            <p>Voc\u00ea tem certeza que deseja cancelar a assinatura de <span class="name" id="modal-name"></span>?<br><br>O usu\u00e1rio ser\u00e1 <strong>removido do grupo</strong> e receeber\u00e1 uma mensagem de notifica\u00e7\u00e3o.</p>
+            <div class="modal-actions">
+                <button class="btn-back" onclick="fecharModal()">Voltar</button>
+                <form id="cancel-form" method="POST">
+                    <button type="submit" class="btn-confirm">\ud83d\udeab Confirmar Cancelamento</button>
+                </form>
+            </div>
+        </div>
+    </div>
 
-    function confirmarCancelamento(id, nome) {
-      document.getElementById('modal-name').textContent = nome;
-      document.getElementById('cancel-form').action = '/admin/subscribers/' + id + '/cancel';
-      document.getElementById('modal').classList.add('active');
-    }
-    function fecharModal() {
-      document.getElementById('modal').classList.remove('active');
-    }
-    document.getElementById('modal').addEventListener('click', function(e) {
-      if (e.target === this) fecharModal();
-    });
+    <!-- Modal editar vencimento -->
+    <div class="modal-overlay" id="modal-edit">
+        <div class="modal modal-edit">
+            <h3>\ud83d\udcc5 Alterar Vencimento</h3>
+            <p>Nova data de vencimento para <span class="name" id="edit-modal-name"></span>:</p>
+            <form id="edit-form" method="POST">
+                <input type="date" class="input-date" name="expires_at" id="edit-date" required>
+                <div class="modal-actions">
+                    <button type="button" class="btn-back" onclick="fecharModalEdit()">Voltar</button>
+                    <button type="submit" class="btn-save">\ud83d\udcbe Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-    function abrirEditarVencimento(id, nome, dataAtual) {
-      document.getElementById('edit-modal-name').textContent = nome;
-      document.getElementById('edit-date').value = dataAtual;
-      document.getElementById('edit-form').action = '/admin/subscribers/' + id + '/expiry';
-      document.getElementById('modal-edit').classList.add('active');
-    }
-    function fecharModalEdit() {
-      document.getElementById('modal-edit').classList.remove('active');
-    }
-    document.getElementById('modal-edit').addEventListener('click', function(e) {
-      if (e.target === this) fecharModalEdit();
-    });
-  </script>
+    <!-- Modal Reenviar Link -->
+    <div class="modal-overlay" id="modal-resend">
+        <div class="modal modal-resend">
+            <h3>\ud83d\udd17 Reenviar Link de Convite</h3>
+            <p>Deseja gerar um novo link de convite e enviar para <span class="name" id="resend-modal-name"></span> via Telegram?</p>
+            <div class="modal-actions">
+                <button class="btn-back" onclick="fecharModalResend()">Voltar</button>
+                <form id="resend-form" method="POST">
+                    <button type="submit" class="btn-resend-confirm">\ud83d\udd17 Enviar Agora</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function confirmarCancelamento(id, nome) {
+            document.getElementById('modal-name').textContent = nome;
+            document.getElementById('cancel-form').action = '/admin/subscribers/' + id + '/cancel';
+            document.getElementById('modal').classList.add('active');
+        }
+        function fecharModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        function abrirEditarVencimento(id, nome, dataAtual) {
+            document.getElementById('edit-modal-name').textContent = nome;
+            document.getElementById('edit-date').value = dataAtual;
+            document.getElementById('edit-form').action = '/admin/subscribers/' + id + '/expiry';
+            document.getElementById('modal-edit').classList.add('active');
+        }
+        function fecharModalEdit() {
+            document.getElementById('modal-edit').classList.remove('active');
+        }
+
+        function confirmarReenvio(id, nome) {
+            document.getElementById('resend-modal-name').textContent = nome;
+            document.getElementById('resend-form').action = '/admin/subscribers/' + id + '/resend-link';
+            document.getElementById('modal-resend').classList.add('active');
+        }
+        function fecharModalResend() {
+            document.getElementById('modal-resend').classList.remove('active');
+        }
+
+        // Fechar modais ao clicar fora
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal-overlay')) {
+                fecharModal();
+                fecharModalEdit();
+                fecharModalResend();
+            }
+        }
+    </script>
 </body>
 </html>
