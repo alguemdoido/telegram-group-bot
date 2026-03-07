@@ -85,6 +85,7 @@ router.get('/subscribers', requireAuth, async (req, res) => {
     WHERE s.status = 'active'
     ORDER BY s.expires_at ASC
   `);
+
   res.render('subscribers', {
     subscribers: subs.rows,
     success: req.query.success || null,
@@ -118,6 +119,7 @@ router.get('/expiring', requireAuth, async (req, res) => {
 router.post('/expiring/send', requireAuth, async (req, res) => {
   const bot = getBotInstance();
   const { message = '', includePlans = '0' } = req.body;
+
   let selectedPlanIds = req.body.planIds || [];
   if (typeof selectedPlanIds === 'string') selectedPlanIds = [selectedPlanIds];
   selectedPlanIds = selectedPlanIds.map(Number).filter(Boolean);
@@ -128,10 +130,11 @@ router.post('/expiring/send', requireAuth, async (req, res) => {
       `SELECT id, name, price FROM plans WHERE id = ANY($1) AND active = TRUE ORDER BY duration_days`,
       [selectedPlanIds]
     );
+
     if (plansRes.rows.length > 0) {
       keyboard = Markup.inlineKeyboard(
         plansRes.rows.map((pl) => [
-          Markup.button.callback(`💳 ${pl.name} - R$ ${Number(pl.price).toFixed(2)}`, `plan_${pl.id}`),
+          Markup.button.callback(`\ud83d\udcb3 ${pl.name} - R$ ${Number(pl.price).toFixed(2)}`, `plan_${pl.id}`),
         ])
       );
     }
@@ -146,6 +149,7 @@ router.post('/expiring/send', requireAuth, async (req, res) => {
 
   let sent = 0;
   let failed = 0;
+
   for (const sub of subs.rows) {
     try {
       await bot.telegram.sendMessage(sub.telegram_id, message, {
@@ -158,6 +162,7 @@ router.post('/expiring/send', requireAuth, async (req, res) => {
       failed++;
     }
   }
+
   res.redirect(`/admin/expiring?success=sent_${sent}_failed_${failed}`);
 });
 
@@ -207,26 +212,79 @@ router.post('/subscribers/:id/cancel', requireAuth, async (req, res) => {
   try {
     await bot.telegram.banChatMember(process.env.TELEGRAM_GROUP_ID, sub.telegram_id);
     await bot.telegram.unbanChatMember(process.env.TELEGRAM_GROUP_ID, sub.telegram_id);
-    console.log('🚫 Assinante removido do grupo:', sub.telegram_id);
+    console.log('\ud83d\udeab Assinante removido do grupo:', sub.telegram_id);
   } catch (e) {
-    console.log('⚠️ Nao foi possivel remover do grupo:', e.message);
+    console.log('\u26a0\ufe0f Nao foi possivel remover do grupo:', e.message);
   }
 
   try {
     await bot.telegram.sendMessage(
       sub.telegram_id,
-      `❌ *Sua assinatura foi cancelada.*
-
+      `\u274c *Sua assinatura foi cancelada.*
 Seu acesso ao grupo foi removido.
-
-Se tiver dúvidas, entre em contato com o suporte.`,
+Se tiver d\u00favidas, entre em contato com o suporte.`,
       { parse_mode: 'Markdown' }
     );
   } catch (e) {
-    console.log('⚠️ Nao foi possivel enviar mensagem ao usuario:', e.message);
+    console.log('\u26a0\ufe0f Nao foi possivel enviar mensagem ao usuario:', e.message);
   }
 
   res.redirect('/admin/subscribers?success=cancelled');
+});
+
+// ─── REENVIAR LINK DE CONVITE ───────────────────────────────────────────────────────
+router.post('/subscribers/:id/resend-link', requireAuth, async (req, res) => {
+  const { id } = req.params;
+  
+  const subRes = await db.query(`
+    SELECT s.*, u.telegram_id, u.first_name
+    FROM subscriptions s
+    JOIN users u ON u.id = s.user_id
+    WHERE s.id = $1 AND s.status = 'active'
+  `, [id]);
+
+  if (!subRes.rows[0]) {
+    return res.redirect('/admin/subscribers?error=not_found');
+  }
+
+  const sub = subRes.rows[0];
+  const bot = getBotInstance();
+  const groupId = process.env.TELEGRAM_GROUP_ID;
+
+  try {
+    // Gera novo link unico
+    const inviteLink = await bot.telegram.createChatInviteLink(groupId, {
+      member_limit: 1
+    });
+
+    // Atualiza no banco
+    await db.query(
+      `UPDATE subscriptions SET invite_link = $1 WHERE id = $2`,
+      [inviteLink.invite_link, id]
+    );
+
+    // Envia mensagem
+    await bot.telegram.sendMessage(sub.telegram_id,
+      `\u2705 *PAGAMENTO CONFIRMADO*
+
+` +
+      `Clique no link abaixo para entrar no grupo
+
+` +
+      `*NOME DO GRUPO (Club Frang\u00e3o)*
+` +
+      `${inviteLink.invite_link}
+
+` +
+      `Se houver d\u00favidas, chame no insta FRANGINLIVE`,
+      { parse_mode: 'Markdown' }
+    );
+
+    res.redirect('/admin/subscribers?success=link_resent');
+  } catch (err) {
+    console.error('\u274c Erro ao reenviar link:', err.message);
+    res.redirect('/admin/subscribers?error=resend_failed');
+  }
 });
 
 // ─── ALTERAR VENCIMENTO ────────────────────────────────────────────────────────────
@@ -262,13 +320,12 @@ router.post('/subscribers/:id/expiry', requireAuth, async (req, res) => {
     const dataFormatada = newExpiry.toLocaleDateString('pt-BR');
     await bot.telegram.sendMessage(
       sub.telegram_id,
-      `📅 *Seu vencimento foi atualizado!*
-
-Olá ${sub.first_name}, sua assinatura agora expira em *${dataFormatada}*. ✅`,
+      `\ud83d\udcc5 *Seu vencimento foi atualizado!*
+Ol\u00e1 ${sub.first_name}, sua assinatura agora expira em *${dataFormatada}*. \u2705`,
       { parse_mode: 'Markdown' }
     );
   } catch (e) {
-    console.log('⚠️ Não foi possível notificar usuário:', e.message);
+    console.log('\u26a0\ufe0f N\u00e3o foi poss\u00edvel notificar usu\u00e1rio:', e.message);
   }
 
   res.redirect('/admin/subscribers?success=expiry_updated');
@@ -313,6 +370,7 @@ router.get('/broadcast', requireAuth, async (req, res) => {
 router.post('/broadcast', requireAuth, upload.single('photo'), async (req, res) => {
   const bot = getBotInstance();
   const { segment = 'active', message = '', includePlans = '0' } = req.body;
+
   let selectedPlanIds = req.body.planIds || [];
   if (typeof selectedPlanIds === 'string') selectedPlanIds = [selectedPlanIds];
   selectedPlanIds = selectedPlanIds.map(Number).filter(Boolean);
@@ -323,10 +381,11 @@ router.post('/broadcast', requireAuth, upload.single('photo'), async (req, res) 
       `SELECT id, name, price FROM plans WHERE id = ANY($1) AND active = TRUE ORDER BY duration_days`,
       [selectedPlanIds]
     );
+
     if (plansRes.rows.length > 0) {
       keyboard = Markup.inlineKeyboard(
         plansRes.rows.map((pl) => [
-          Markup.button.callback(`💳 ${pl.name} - R$ ${Number(pl.price).toFixed(2)}`, `plan_${pl.id}`),
+          Markup.button.callback(`\ud83d\udcb3 ${pl.name} - R$ ${Number(pl.price).toFixed(2)}`, `plan_${pl.id}`),
         ])
       );
     }
