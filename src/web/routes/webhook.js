@@ -65,7 +65,6 @@ router.post(['/efi/webhook', '/efi/webhook/pix'], async (req, res) => {
           [expiresAt, existingSub.rows[0].id]
         );
         subscriptionId = existingSub.rows[0].id;
-
         await bot.telegram.sendMessage(payment.telegram_id,
           `\u2705 *Renova\u00e7\u00e3o confirmada!*\n\nSeu acesso ao grupo foi renovado at\u00e9 *${expiresAt.toLocaleDateString('pt-BR')}*. \ud83c\udf89`,
           { parse_mode: 'Markdown' }
@@ -76,8 +75,7 @@ router.post(['/efi/webhook', '/efi/webhook/pix'], async (req, res) => {
         const groupId = process.env.TELEGRAM_GROUP_ID;
         console.log('\ud83d\udd17 Criando invite link para grupo:', groupId);
         const inviteLink = await bot.telegram.createChatInviteLink(groupId, {
-          member_limit: 1,
-          expire_date: Math.floor((Date.now() + 3600000) / 1000)
+          member_limit: 1
         });
 
         const subRes = await db.query(`
@@ -92,10 +90,11 @@ router.post(['/efi/webhook', '/efi/webhook/pix'], async (req, res) => {
         );
 
         await bot.telegram.sendMessage(payment.telegram_id,
-          `\u2705 *Pagamento confirmado!*\n\n` +
-          `Clique no link abaixo para entrar no grupo.\n` +
-          `\u26a0\ufe0f O link \u00e9 de uso \u00fanico e expira em 1 hora!\n\n` +
-          `\ud83d\udd17 ${inviteLink.invite_link}`,
+          `\u2705 *PAGAMENTO CONFIRMADO*\n\n` +
+          `Clique no link abaixo para entrar no grupo\n\n` +
+          `*NOME DO GRUPO (Club Frang\u00e3o)*\n` +
+          `${inviteLink.invite_link}\n\n` +
+          `Se houver d\u00favidas, chame no insta FRANGINLIVE`,
           { parse_mode: 'Markdown' }
         );
         console.log('\ud83d\udd17 Link enviado para:', payment.telegram_id, inviteLink.invite_link);
