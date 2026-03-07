@@ -247,9 +247,7 @@ router.post('/subscribers/:id/expiry', requireAuth, async (req, res) => {
 
   if (!subRes.rows[0]) {
     return res.redirect('/admin/subscribers?error=not_found');
-  }// teste
-router.post('/teste', (req, res) => { res.send('ok'); });
-
+  }
 
   const sub = subRes.rows[0];
   const newExpiry = new Date(expires_at + 'T23:59:59');
@@ -271,31 +269,7 @@ Olá ${sub.first_name}, sua assinatura agora expira em *${dataFormatada}*. ✅`,
     );
   } catch (e) {
     console.log('⚠️ Não foi possível notificar usuário:', e.message);
-  }// rota resend
-router.post('/subscribers/:id/resend-link', requireAuth, async (req, res) => {
-  const { id } = req.params;
-  const subRes = await db.query('SELECT s.*, u.telegram_id, u.first_name FROM subscriptions s JOIN users u ON u.id = s.user_id WHERE s.id = $1 AND s.status = \\'active\\'', [id]);
-  if (!subRes.rows[0]) return res.redirect('/admin/subscribers?error=not_found');
-  const sub = subRes.rows[0];
-  try {
-    const bot = getBotInstance();
-    const groupId = process.env.TELEGRAM_GROUP_ID;
-    const inviteLink = await bot.telegram.createChatInviteLink(groupId, { member_limit: 1 });
-    await db.query('UPDATE subscriptions SET invite_link = $1 WHERE id = $2', [inviteLink.invite_link, id]);
-    await bot.telegram.sendMessage(sub.telegram_id, '🔗 *NOVO LINK DE ACESSO*\
-\
-' + 'Olá ' + sub.first_name + ', aqui está seu novo link para entrar no grupo:\
-\
-' + inviteLink.invite_link + '\
-\
-' + '*Club Frangão*', { parse_mode: 'Markdown' });
-    res.redirect('/admin/subscribers?success=link_resent');
-  } catch (e) {
-    console.error('⚠️ Erro ao reenviar link:', e.message);
-    res.redirect('/admin/subscribers?error=resend_failed');
   }
-});
-
 
   res.redirect('/admin/subscribers?success=expiry_updated');
 });
