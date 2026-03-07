@@ -25,10 +25,10 @@ async function removeMember(groupId, telegramId) {
 }
 
 /**
- * Gera link de convite de uso único com validade de 1 hora
+ * Gera link de convite de uso único com validade de 24 horas
  */
 async function createInviteLink(groupId) {
-  const expireDate = Math.floor((Date.now() + 3600000) / 1000);
+  const expireDate = Math.floor((Date.now() + 86400000) / 1000);
   const result = await bot.telegram.createChatInviteLink(groupId, {
     member_limit: 1,
     expire_date: expireDate,
