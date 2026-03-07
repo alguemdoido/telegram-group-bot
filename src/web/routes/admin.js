@@ -159,10 +159,11 @@ router.post('/subscribers/:id/cancel', requireAuth, async (req, res) => {
     await bot.telegram.unbanChatMember(process.env.TELEGRAM_GROUP_ID, sub.telegram_id);
   } catch (e) { console.log('Erro ao remover do grupo:', e.message); }
   try {
-    await bot.telegram.sendMessage(sub.telegram_id, '\u274c <b>Sua assinatura foi cancelada.</b>
+Seu aces      await bot.telegram.sendMessage(sub.telegram_id, `\u274c <b>Sua assinatura foi cancelada.</b>
 Seu acesso ao grupo foi removido.
-Se tiver d\u00favidas, entre em contato com o suporte.', { parse_mode: 'HTML' });
-  } catch (e) { console.log('Erro ao notificar usuario:', e.message); }
+Se tiver d\u00favidas, entre em contato com o suporte.`, { parse_mode: 'HTML' });
+Se tiver
+  } catc
   res.redirect('/admin/subscribers?success=cancelled');
 });
 
@@ -170,10 +171,18 @@ Se tiver d\u00favidas, entre em contato com o suporte.', { parse_mode: 'HTML' })
 router.post('/subscribers/:id/resend-link', requireAuth, async (req, res) => {
   const { id } = req.params;
   const subRes = await db.query('SELECT s.*, u.telegram_id, u.first_name FROM subscriptions s JOIN users u ON u.id = s.user_id WHERE s.id = $1 AND s.status = \'active\'', [id]);
-  if (!subRes.rows[0]) return res.redirect('/admin/subscribers?error=not_found');
-  const sub = subRes.rows[0];
-  const bot = getBotInstance();
-  const groupId = process.env.TELEGRAM_GROUP_ID;
+  if (!subRes.rows[0]) return res      await bot.telegram.sendMessage(sub.telegram_id, `\u2705 <b>PAGAMENTO CONFIRMADO</b>
+
+Clique no link abaixo para entrar no grupo
+
+<b>NOME DO GRUPO (Club Frang\u00e3o)</b>
+
+${inviteLink.invite_link}
+
+Se houver d\u00favidas, chame no insta FRANGINLIVE`, { parse_mode: 'HTML' });
+  const sub = subRes.rows[0]
+  const bot = getBotInstance()
+  const groupId = process.env.TEL
   try {
     const inviteLink = await bot.telegram.createChatInviteLink(groupId, { member_limit: 1 });
     await db.query('UPDATE subscriptions SET invite_link = $1 WHERE id = $2', [inviteLink.invite_link, id]);
