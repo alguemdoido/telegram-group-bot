@@ -1,6 +1,8 @@
 const express = require('express');
 const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
 const path = require('path');
+const db = require('../db/index');
 const adminRoutes = require('./routes/admin');
 const webhookRoutes = require('./routes/webhook');
 
@@ -12,10 +14,17 @@ function startServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(express.static(path.join(__dirname, 'public')));
+
   app.use(session({
+    store: new pgSession({
+      pool: db,
+      tableName: 'sessions',
+      createTableIfMissing: true
+    }),
     secret: process.env.SESSION_SECRET,
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: false,
+    cookie: { maxAge: 30 * 24 * 60 * 60 * 1000 }
   }));
 
   // Webhook EFI na raiz - URL final: /efi/webhook
