@@ -47,15 +47,19 @@ async function handlePlanSelect(ctx) {
       { text: '✅ Verificar Pagamento', callback_data: `check_pay_${txid}` }
     ]);
 
+    const planNameSafe = String(plan.name).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const priceFormatted = Number(plan.price).toFixed(2);
+    const extraMsg = !canCopyBtn ? '\n\n<i>(Se não aparecer o botão, copie pelo código acima)</i>' : '';
+
     await ctx.replyWithPhoto(
       { source: Buffer.from(qrImage.split(',')[1], 'base64') },
       {
         caption:
-          `💰 *${plan.name} — R$ ${Number(plan.price).toFixed(2)}*\n\n` +
-          `📋 Pix Copia e Cola:\n\`${pixCopiaECola}\`\n\n` +
-          `⏰ Após pagar, clique em *Verificar Pagamento*` +
-          (!canCopyBtn ? `\n\n_(Se não aparecer o botão, copie pelo código acima)_` : ''),
-        parse_mode: 'Markdown',
+          `💰 <b>${planNameSafe} — R$ ${priceFormatted}</b>\n\n` +
+          `📋 Pix Copia e Cola:\n<code>${pixCopiaECola}</code>\n\n` +
+          `⏰ Após pagar, clique em <b>Verificar Pagamento</b>` +
+          extraMsg,
+        parse_mode: 'HTML',
         reply_markup: { inline_keyboard }
       }
     );
@@ -67,7 +71,6 @@ async function handlePlanSelect(ctx) {
 
 async function handleCheckPayment(ctx) {
   const txid = ctx.match[1];
-
   const payment = await db.query(
     `SELECT * FROM payments WHERE txid = $1`,
     [txid]
