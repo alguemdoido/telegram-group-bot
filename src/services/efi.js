@@ -9,7 +9,7 @@ const efi = new EfiPay({
   certificate: process.env.EFI_CERT_BASE64,
   cert_base64: true,
 
-  sandbox: process.env.EFI_SANDBOX === 'true'
+  sandbox: process.env.EFI_SANDBOX === 'true',
 
   'x-skip-mtls-checking': 'true'
 });
