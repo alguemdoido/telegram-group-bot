@@ -65,9 +65,9 @@ router.post(['/efi/webhook', '/efi/webhook/pix'], async (req, res) => {
           [expiresAt, existingSub.rows[0].id]
         );
         subscriptionId = existingSub.rows[0].id;
-        await bot.telegram.sendMessage(payment.telegram_id,
-          `\u2705 *Renova\u00e7\u00e3o confirmada!*\n\nSeu acesso ao grupo foi renovado at\u00e9 *${expiresAt.toLocaleDateString('pt-BR')}*. \ud83c\udf89`,
-          { parse_mode: 'Markdown' }
+        await bot.telegram.sendMessage(
+          payment.telegram_id,
+          `\u2705 Renova\u00e7\u00e3o confirmada!\n\nSeu acesso ao grupo foi renovado at\u00e9 ${expiresAt.toLocaleDateString('pt-BR')}. \ud83c\udf89`
         );
         console.log('\ud83c\udf89 Renovacao enviada para:', payment.telegram_id);
       } else {
@@ -77,10 +77,10 @@ router.post(['/efi/webhook', '/efi/webhook/pix'], async (req, res) => {
         const inviteLink = await bot.telegram.createChatInviteLink(groupId, {
           member_limit: 1
         });
-
         const subRes = await db.query(`
           INSERT INTO subscriptions (user_id, plan_id, starts_at, expires_at, invite_link)
-          VALUES ($1, $2, $3, $4, $5) RETURNING id
+          VALUES ($1, $2, $3, $4, $5)
+          RETURNING id
         `, [payment.user_id, payment.plan_id, now, expiresAt, inviteLink.invite_link]);
         subscriptionId = subRes.rows[0].id;
 
@@ -89,13 +89,13 @@ router.post(['/efi/webhook', '/efi/webhook/pix'], async (req, res) => {
           [payment.user_id]
         );
 
-        await bot.telegram.sendMessage(payment.telegram_id,
-          `\u2705 *PAGAMENTO CONFIRMADO*\n\n` +
+        await bot.telegram.sendMessage(
+          payment.telegram_id,
+          `\u2705 PAGAMENTO CONFIRMADO\n\n` +
           `Clique no link abaixo para entrar no grupo\n\n` +
-          `*NOME DO GRUPO (Club Frang\u00e3o)*\n` +
+          `NOME DO GRUPO (Club Frang\u00e3o)\n` +
           `${inviteLink.invite_link}\n\n` +
-          `Se houver d\u00favidas, chame no insta FRANGINLIVE`,
-          { parse_mode: 'Markdown' }
+          `Se houver d\u00favidas, chame no insta FRANGINLIVE`
         );
         console.log('\ud83d\udd17 Link enviado para:', payment.telegram_id, inviteLink.invite_link);
       }
