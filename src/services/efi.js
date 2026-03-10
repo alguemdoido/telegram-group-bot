@@ -10,6 +10,8 @@ const efi = new EfiPay({
   cert_base64: true,
 
   sandbox: process.env.EFI_SANDBOX === 'true'
+
+  'x-skip-mtls-checking': 'true'
 });
 
 async function createPixCharge({ value, description }) {
