@@ -46,8 +46,7 @@ async function registerWebhook() {
     if (err?.response?.data?.codigo === 'webhook-invalido' || err?.status === 409) {
       console.log('\u26a0\ufe0f Webhook ja estava cadastrado (ok)');
     // ECONNRESET = cold start do Railway (timeout da EFI na validacao)
-    } else if (err?.response?.data?.mensagem?.includes('ECONNRESET')) {
-      console.log('\u26a0\ufe0f Webhook EFI nao validado no boot (ECONNRESET - cold start esperado)');
+    } else if (err?.response?.data?.nome === 'webhook_invalido' && err?.response?.data?.mensagem?.includes('ECONNRESET')) {      console.log('\u26a0\ufe0f Webhook EFI nao validado no boot (ECONNRESET - cold start esperado)');
     } else {
       const msg = err?.response?.data
         ? JSON.stringify(err.response.data)
