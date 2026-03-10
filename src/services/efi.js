@@ -49,6 +49,9 @@ async function registerWebhook() {
       const msg = err?.response?.data
         ? JSON.stringify(err.response.data)
         : err?.message || err?.stack || JSON.stringify(err, Object.getOwnPropertyNames(err), 2);      console.error('\u274c Erro ao registrar webhook EFI:', msg);
+    // ECONNRESET = cold start do Railway, webhook provavelmente ja esta cadastrado
+    } else if (err?.response?.data?.mensagem?.includes('ECONNRESET')) {
+      console.log('\u26a0\ufe0f Webhook EFI nao validado no boot (ECONNRESET - cold start esperado)');
     }
   }
 }
