@@ -362,4 +362,51 @@ router.post('/broadcast', requireAuth, upload.single('photo'), async (req, res) 
   return res.render('broadcast', { result, plans: plans.rows });
 });
 
+// ─── REENVIAR LINK ───────────────────────────────────────────────────────────────
+router.post('/subscribers/:id/resend-link', requireAuth, async (req, res) => {
+  const { id } = req.params;
+
+  const subRes = await db.query(`
+    SELECT s.*, u.telegram_id, u.first_name
+    FROM subscriptions s
+    JOIN users u ON u.id = s.user_id
+    WHERE s.id = $1 AND s.status = 'active'
+  `, [id]);
+
+  if (!subRes.rows[0]) {
+    return res.redirect('/admin/subscribers?error=not_found');
+  }
+
+  const sub = subRes.rows[0];
+
+  // Gera um novo invite link único (member_limit: 1)
+  const bot = getBotInstance();
+  const groupId = process.env.TELEGRAM_GROUP_ID;
+
+  try {
+    const inviteLink = await bot.telegram.createChatInviteLink(groupId, {
+      member_limit: 1
+    });
+
+    // Atualiza o link no banco
+    await db.query(
+      `UPDATE subscriptions SET invite_link = $1 WHERE id = $2`,
+      [inviteLink.invite_link, id]
+    );
+
+    // Envia o novo link pro usuário
+    await bot.telegram.sendMessage(
+      sub.telegram_id,
+      `🔗 Novo link de acesso ao grupo:\n\n${inviteLink.invite_link}\n\nClique no link para entrar no grupo.`
+    );
+
+    console.log('🔗 Novo link enviado para:', sub.telegram_id, inviteLink.invite_link);
+    res.redirect('/admin/subscribers?success=link_sent');
+  } catch (err) {
+    console.error('❌ Erro ao reenviar link:', err.message);
+    res.redirect('/admin/subscribers?error=send_failed');
+  }
+});
+
+
 module.exports = router;
