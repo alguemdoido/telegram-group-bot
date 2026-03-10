@@ -36,8 +36,7 @@ async function createPixCharge({ value, description }) {
 }
 
 async function registerWebhook() {
-  const webhookUrl = process.env.WEBHOOK_BASE_URL + '/efi/webhook/pix';  console.log('\ud83d\udd17 Registrando webhook EFI em:', webhookUrl);
-  try {
+  const webhookUrl = process.env.WEBHOOK_BASE_URL + '/efi/webhook?ignorar='; console.log('\ud83d\udd17 Registrando webhook EFI em:', webhookUrl);  try {
     const params = { chave: process.env.EFI_PIX_KEY };
     const body = { webhookUrl };
     await efi.pixConfigWebhook(params, body);
