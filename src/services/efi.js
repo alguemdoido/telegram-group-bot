@@ -45,15 +45,14 @@ async function registerWebhook() {
     // Erro 409 = webhook ja cadastrado com a mesma URL (ok)
     if (err?.response?.data?.codigo === 'webhook-invalido' || err?.status === 409) {
       console.log('\u26a0\ufe0f Webhook ja estava cadastrado (ok)');
+    // ECONNRESET = cold start do Railway (timeout da EFI na validacao)
+    } else if (err?.response?.data?.mensagem?.includes('ECONNRESET')) {
+      console.log('\u26a0\ufe0f Webhook EFI nao validado no boot (ECONNRESET - cold start esperado)');
     } else {
       const msg = err?.response?.data
         ? JSON.stringify(err.response.data)
         : err?.message || err?.stack || JSON.stringify(err, Object.getOwnPropertyNames(err), 2);      console.error('\u274c Erro ao registrar webhook EFI:', msg);
-    // ECONNRESET = cold start do Railway, webhook provavelmente ja esta cadastrado
-    } else if (err?.response?.data?.mensagem?.includes('ECONNRESET')) {
-      console.log('\u26a0\ufe0f Webhook EFI nao validado no boot (ECONNRESET - cold start esperado)');
-    }
-  }
+    }  }
 }
 
 module.exports = { createPixCharge, registerWebhook };
