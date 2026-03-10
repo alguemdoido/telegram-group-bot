@@ -48,8 +48,7 @@ async function registerWebhook() {
     } else {
       const msg = err?.response?.data
         ? JSON.stringify(err.response.data)
-        : (err?.message || String(err));
-      console.error('\u274c Erro ao registrar webhook EFI:', msg);
+        : err?.message || err?.stack || JSON.stringify(err, Object.getOwnPropertyNames(err), 2);      console.error('\u274c Erro ao registrar webhook EFI:', msg);
     }
   }
 }
