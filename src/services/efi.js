@@ -46,7 +46,10 @@ async function registerWebhook() {
     if (err?.response?.data?.codigo === 'webhook-invalido' || err?.status === 409) {
       console.log('\u26a0\ufe0f Webhook ja estava cadastrado (ok)');
     } else {
-      console.error('\u274c Erro ao registrar webhook EFI:', err?.response?.data || err.message);
+      const msg = err?.response?.data
+        ? JSON.stringify(err.response.data)
+        : (err?.message || String(err));
+      console.error('\u274c Erro ao registrar webhook EFI:', msg);
     }
   }
 }
