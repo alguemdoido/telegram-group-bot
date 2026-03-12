@@ -36,22 +36,35 @@ async function createPixCharge({ value, description }) {
 }
 
 async function registerWebhook() {
-  const webhookUrl = process.env.WEBHOOK_BASE_URL + '/efi/webhook?ignorar='; console.log('\ud83d\udd17 Registrando webhook EFI em:', webhookUrl);  try {
+  const webhookUrl = process.env.WEBHOOK_BASE_URL + '/efi/webhook?ignorar=';
+  console.log('\ud83d\udd17 Registrando webhook EFI em:', webhookUrl);
+  try {
     const params = { chave: process.env.EFI_PIX_KEY };
     const body = { webhookUrl };
     await efi.pixConfigWebhook(params, body);
     console.log('\u2705 Webhook EFI registrado com sucesso');
   } catch (err) {
+    // Serializa o erro para inspecionar a estrutura real
+    const errData = err?.response?.data;
+    const errMsg = errData
+      ? JSON.stringify(errData)
+      : err?.message || err?.stack || JSON.stringify(err, Object.getOwnPropertyNames(err), 2);
+
     // Erro 409 = webhook ja cadastrado com a mesma URL (ok)
     if (err?.response?.data?.codigo === 'webhook-invalido' || err?.status === 409) {
       console.log('\u26a0\ufe0f Webhook ja estava cadastrado (ok)');
-    // ECONNRESET = cold start do Railway (timeout da EFI na validacao)
-    } else if (err?.response?.data?.nome === 'webhook_invalido' && err?.response?.data?.mensagem?.includes('ECONNRESET')) {      console.log('\u26a0\ufe0f Webhook EFI nao validado no boot (ECONNRESET - cold start esperado)');
+
+    // ECONNRESET = cold start do Railway (timeout da EFI na validacao do servidor)
+    } else if (
+      errMsg.includes('ECONNRESET') ||
+      (err?.response?.data?.nome === 'webhook_invalido' && errMsg.includes('ECONNRESET'))
+    ) {
+      console.log('\u26a0\ufe0f Webhook EFI nao validado no boot (ECONNRESET - cold start esperado, webhooks continuam funcionando)');
+
     } else {
-      const msg = err?.response?.data
-        ? JSON.stringify(err.response.data)
-        : err?.message || err?.stack || JSON.stringify(err, Object.getOwnPropertyNames(err), 2);      console.error('\u274c Erro ao registrar webhook EFI:', msg);
-    }  }
+      console.error('\u274c Erro ao registrar webhook EFI:', errMsg);
+    }
+  }
 }
 
 module.exports = { createPixCharge, registerWebhook };
