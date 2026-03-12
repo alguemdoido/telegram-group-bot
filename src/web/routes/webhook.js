@@ -59,36 +59,36 @@ router.post(['/efi/webhook', '/efi/webhook/pix'], async (req, res) => {
     let subscriptionId;
     try {
       if (existingSub.rows[0]) {
-        // Renova: apenas estende a data
+        // Renova: estende a partir da data de expiracao atual (nao de agora)
+        const currentExpires = new Date(existingSub.rows[0].expires_at);
+        const baseDate = currentExpires > now ? currentExpires : now;
+        const newExpiresAt = new Date(baseDate.getTime() + durationDays * 86400000);
+
         await db.query(
           `UPDATE subscriptions SET expires_at = $1 WHERE id = $2`,
-          [expiresAt, existingSub.rows[0].id]
+          [newExpiresAt, existingSub.rows[0].id]
         );
         subscriptionId = existingSub.rows[0].id;
         await bot.telegram.sendMessage(
           payment.telegram_id,
-          `\u2705 Renova\u00e7\u00e3o confirmada!\n\nSeu acesso ao grupo foi renovado at\u00e9 ${expiresAt.toLocaleDateString('pt-BR')}. \ud83c\udf89`
+          `\u2705 Renova\u00e7\u00e3o confirmada!\n\nSeu acesso ao grupo foi renovado at\u00e9 ${newExpiresAt.toLocaleDateString('pt-BR')}. \ud83c\udf89`
         );
         console.log('\ud83c\udf89 Renovacao enviada para:', payment.telegram_id);
       } else {
         // Novo acesso: cria subscription e gera link unico
         const groupId = process.env.TELEGRAM_GROUP_ID;
         console.log('\ud83d\udd17 Criando invite link para grupo:', groupId);
-        const inviteLink = await bot.telegram.createChatInviteLink(groupId, {
-          member_limit: 1
-        });
+        const inviteLink = await bot.telegram.createChatInviteLink(groupId, { member_limit: 1 });
         const subRes = await db.query(`
           INSERT INTO subscriptions (user_id, plan_id, starts_at, expires_at, invite_link)
           VALUES ($1, $2, $3, $4, $5)
           RETURNING id
         `, [payment.user_id, payment.plan_id, now, expiresAt, inviteLink.invite_link]);
         subscriptionId = subRes.rows[0].id;
-
         await db.query(
           `UPDATE users SET never_bought = FALSE WHERE id = $1`,
           [payment.user_id]
         );
-
         await bot.telegram.sendMessage(
           payment.telegram_id,
           `\u2705 PAGAMENTO CONFIRMADO\n\n` +
