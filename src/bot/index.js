@@ -1,16 +1,16 @@
 const { Telegraf } = require('telegraf');
-const { handleStart, handlePlanos } = require('./commands');
+const { handleStart, handlePlanos, handleIndicacoes } = require('./commands');
 const { handlePlanSelect, handleCheckPayment } = require('./actions');
 const db = require('../db/index');
 
 const token = (process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN || '').trim();
 if (!token) throw new Error('Missing TELEGRAM_BOT_TOKEN');
 
-let bot; // instância única
+let bot; // instancia unica
 let started = false;
 
 function getBot() {
-  if (!bot) throw new Error('Bot ainda não foi inicializado');
+  if (!bot) throw new Error('Bot ainda nao foi inicializado');
   return bot;
 }
 
@@ -22,8 +22,9 @@ function initBot() {
   // Registra usuarios no /start
   bot.start(handleStart);
   bot.command('planos', handlePlanos);
+  bot.command('indicacoes', handleIndicacoes);
 
-  // Callbacks dos botoes inline ✅ FINAL
+  // Callbacks dos botoes inline
   bot.action(/^plan_(\d+)$/, handlePlanSelect);
   bot.action(/^check_pay_(.+)$/, handleCheckPayment);
   bot.action('show_plans', handlePlanos);
@@ -44,9 +45,9 @@ function initBot() {
 }
 
 async function startBot() {
-  // ✅ Checa ANTES de qualquer coisa — evita conflito entre processos duplicados
+  // Checa ANTES de qualquer coisa - evita conflito entre processos duplicados
   if (started) {
-    console.log('⚠️ startBot() chamado mas já iniciado. Ignorando.');
+    console.log('\u26a0\ufe0f startBot() chamado mas ja iniciado. Ignorando.');
     return;
   }
 
@@ -54,31 +55,31 @@ async function startBot() {
 
   try {
     await bot.telegram.deleteWebhook({ drop_pending_updates: true });
-    console.log('🧹 Webhook deletado / Polling anterior LIMPO');
+    console.log('\u{1F9F9} Webhook deletado / Polling anterior LIMPO');
   } catch (e) {
-    console.log('⚠️ deleteWebhook falhou (não crítico):', e.message);
+    console.log('\u26a0\ufe0f deleteWebhook falhou (nao critico):', e.message);
   }
 
-  // Pequeno delay para garantir que conexão anterior fechou
+  // Pequeno delay para garantir que conexao anterior fechou
   await new Promise(r => setTimeout(r, 1500));
 
-  // Lança o bot sem bloquear o processo (não usa await)
+  // Lanca o bot sem bloquear o processo (nao usa await)
   bot.launch({
     dropPendingUpdates: true,
     allowedUpdates: ['message', 'callback_query', 'chat_member', 'my_chat_member'],
   }).then(() => {
-    console.log('🤖 Bot encerrado.');
+    console.log('\u{1F916} Bot encerrado.');
   }).catch((err) => {
     if (err.response && err.response.error_code === 409) {
-      console.error('❌ Conflito 409: outra instância já está rodando. Encerrando...');
+      console.error('\u274c Conflito 409: outra instancia ja esta rodando. Encerrando...');
       process.exit(0);
     } else {
-      console.error('❌ Erro ao iniciar o bot:', err.message);
+      console.error('\u274c Erro ao iniciar o bot:', err.message);
     }
   });
 
   started = true;
-  console.log('🤖 Bot iniciado OK');
+  console.log('\u{1F916} Bot iniciado OK');
 
   process.once('SIGINT', () => bot.stop('SIGINT'));
   process.once('SIGTERM', () => bot.stop('SIGTERM'));
