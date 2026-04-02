@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ranking de Indicacoes</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #1a1a2e; font-family: Arial, sans-serif; color: #a8b2d8; }
+    nav { background: #16213e; padding: 1rem 2rem; display: flex; align-items: center; }
+    nav h1 { color: #e94560; font-size: 1.2rem; }
+    nav a { color: #a8b2d8; text-decoration: none; margin-left: 1.5rem; font-size: 0.9rem; }
+    nav a:hover { color: #e94560; }
+    .container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+    h2 { color: #e2e8f0; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; background: #16213e; border-radius: 8px; overflow: hidden; }
+    th { background: #0f3460; color: #e94560; padding: 0.875rem 1rem; text-align: left; font-size: 0.85rem; }
+    td { padding: 0.75rem 1rem; border-bottom: 1px solid #0f3460; font-size: 0.9rem; }
+    tr:last-child td { border-bottom: none; }
+    .badge { padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.78rem; }
+    .badge-gold { background: #b8860b22; color: #ffd700; border: 1px solid #b8860b; }
+    .badge-silver { background: #80808022; color: #c0c0c0; border: 1px solid #808080; }
+    .badge-bronze { background: #cd7f3222; color: #cd7f32; border: 1px solid #cd7f32; }
+    .badge-normal { background: #1a3a5c; color: #a8b2d8; }
+    .empty { text-align: center; padding: 3rem; color: #4a5568; }
+    .medal { font-size: 1.2rem; }
+    .stats-row td { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>Admin</h1>
+    <a href="/admin">Dashboard</a>
+    <a href="/admin/subscribers">Assinantes</a>
+    <a href="/admin/expiring">A Vencer</a>
+    <a href="/admin/plans">Planos</a>
+    <a href="/admin/broadcast">Broadcast</a>
+    <a href="/admin/referrals" style="color:#e94560">Indicacoes</a>
+    <a href="/admin/logout" style="margin-left:auto">Sair</a>
+  </nav>
+
+  <div class="container">
+    <h2>Ranking de Indicacoes</h2>
+
+    <% if (ranking.length === 0) { %>
+      <p class="empty">Nenhuma indicacao registrada ainda.</p>
+    <% } else { %>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Usuario</th>
+            <th>Telegram ID</th>
+            <th>Total Indicados</th>
+            <th>Convertidos</th>
+            <th>Dias Bonus Ganhos</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% ranking.forEach(function(r, i) { %>
+            <tr class="stats-row">
+              <td>
+                <% if (i === 0) { %><span class="medal">🥇</span>
+                <% } else if (i === 1) { %><span class="medal">🥈</span>
+                <% } else if (i === 2) { %><span class="medal">🥉</span>
+                <% } else { %><%= i + 1 %>
+                <% } %>
+              </td>
+              <td>
+                <strong style="color:#e2e8f0"><%= r.first_name || 'Desconhecido' %></strong>
+                <% if (r.username) { %><br><small>@<%= r.username %></small><% } %>
+              </td>
+              <td><code style="color:#e94560"><%= r.referrer_telegram_id %></code></td>
+              <td><span class="badge badge-normal"><%= r.total_indicados %></span></td>
+              <td>
+                <% if (r.convertidos > 0) { %>
+                  <span class="badge badge-gold"><%= r.convertidos %> assinantes</span>
+                <% } else { %>
+                  <span class="badge badge-normal">0</span>
+                <% } %>
+              </td>
+              <td>
+                <% if (r.dias_bonus_total > 0) { %>
+                  <span class="badge badge-gold">+<%= r.dias_bonus_total %> dias</span>
+                <% } else { %>
+                  <span class="badge badge-normal">0 dias</span>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+</body>
+</html>
