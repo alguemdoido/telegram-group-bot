@@ -409,4 +409,29 @@ router.post('/subscribers/:id/resend-link', requireAuth, async (req, res) => {
 });
 
 
+// ── RANKING DE INDICACOES ──────────────────────────────────────────────────────────
+router.get('/referrals', requireAuth, async (req, res) => {
+  const ranking = await db.query(`
+    SELECT
+      r.referrer_telegram_id,
+      u.first_name,
+      u.username,
+      COUNT(*) as total_indicados,
+      COUNT(*) FILTER (WHERE r.converted = TRUE) as convertidos,
+      COUNT(*) FILTER (WHERE r.rewarded = TRUE) as recompensados,
+      COALESCE((
+        SELECT SUM(rw.reward_days)
+        FROM referral_rewards rw
+        WHERE rw.referrer_telegram_id = r.referrer_telegram_id
+      ), 0) as dias_bonus_total
+    FROM referrals r
+    LEFT JOIN users u ON u.telegram_id = r.referrer_telegram_id
+    GROUP BY r.referrer_telegram_id, u.first_name, u.username
+    ORDER BY convertidos DESC, total_indicados DESC
+    LIMIT 50
+  `);
+
+  res.render('referrals', { ranking: ranking.rows });
+});
+
 module.exports = router;
