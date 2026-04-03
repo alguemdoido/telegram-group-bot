@@ -10,7 +10,6 @@ async function handleStart(ctx) {
   if (startPayload.startsWith('ref_')) {
     const refId = parseInt(startPayload.replace('ref_', ''), 10);
     if (!isNaN(refId) && refId !== id) {
-      // Bloqueia auto-indicacao
       referrerTelegramId = refId;
     }
   }
@@ -29,18 +28,15 @@ async function handleStart(ctx) {
   // Registra referral apenas se ainda nao tem um referrer e veio de link valido
   if (referrerTelegramId && !user.referred_by_user_id) {
     try {
-      // Verifica se o referrer existe
       const referrerRes = await db.query(
         `SELECT id FROM users WHERE telegram_id = $1`,
         [referrerTelegramId]
       );
       if (referrerRes.rows[0]) {
-        // Salva referrer no usuario
         await db.query(
           `UPDATE users SET referred_by_user_id = $1 WHERE telegram_id = $2`,
           [referrerTelegramId, id]
         );
-        // Insere na tabela referrals (UNIQUE em referred_telegram_id garante idempotencia)
         await db.query(`
           INSERT INTO referrals (referrer_telegram_id, referred_telegram_id)
           VALUES ($1, $2)
@@ -107,4 +103,51 @@ async function handleIndicacoes(ctx) {
   );
 }
 
-module.exports = { handleStart, handlePlanos, handleIndicacoes };
+async function handleAssinatura(ctx) {
+  const { id } = ctx.from;
+
+  const subRes = await db.query(`
+    SELECT s.expires_at, s.status, pl.name as plan_name
+    FROM subscriptions s
+    JOIN users u ON u.id = s.user_id
+    JOIN plans pl ON pl.id = s.plan_id
+    WHERE u.telegram_id = $1 AND s.status = 'active'
+    ORDER BY s.expires_at DESC
+    LIMIT 1
+  `, [id]);
+
+  if (!subRes.rows[0]) {
+    await ctx.reply(
+      `\u274c *Voc\u00ea n\u00e3o possui uma assinatura ativa.*\n\nDigite /planos para ver as op\u00e7\u00f5es dispon\u00edveis.`,
+      { parse_mode: 'Markdown' }
+    );
+    return;
+  }
+
+  const sub = subRes.rows[0];
+  const expires = new Date(sub.expires_at);
+  const now = new Date();
+  const diffMs = expires - now;
+  const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  const dataFormatada = expires.toLocaleDateString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric'
+  });
+
+  let statusMsg;
+  if (diffDias <= 3) {
+    statusMsg = `\u26a0\ufe0f *Aten\u00e7\u00e3o!* Sua assinatura vence em *${diffDias} dia(s)*!`;
+  } else {
+    statusMsg = `\u2705 Sua assinatura est\u00e1 ativa por mais *${diffDias} dias*`;
+  }
+
+  await ctx.reply(
+    `\u{1F4CB} *Detalhes da sua Assinatura*\n\n` +
+    `\u{1F4E6} Plano: *${sub.plan_name}*\n` +
+    `\u{1F4C5} Vence em: *${dataFormatada}*\n\n` +
+    statusMsg,
+    { parse_mode: 'Markdown' }
+  );
+}
+
+module.exports = { handleStart, handlePlanos, handleIndicacoes, handleAssinatura };
