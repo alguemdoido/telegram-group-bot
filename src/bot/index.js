@@ -1,5 +1,5 @@
 const { Telegraf } = require('telegraf');
-const { handleStart, handlePlanos, handleIndicacoes } = require('./commands');
+const { handleStart, handlePlanos, handleIndicacoes, handleAssinatura } = require('./commands');
 const { handlePlanSelect, handleCheckPayment } = require('./actions');
 const db = require('../db/index');
 
@@ -23,6 +23,7 @@ function initBot() {
   bot.start(handleStart);
   bot.command('planos', handlePlanos);
   bot.command('indicacoes', handleIndicacoes);
+  bot.command('assinatura', handleAssinatura);
 
   // Callbacks dos botoes inline
   bot.action(/^plan_(\d+)$/, handlePlanSelect);
@@ -45,7 +46,6 @@ function initBot() {
 }
 
 async function startBot() {
-  // Checa ANTES de qualquer coisa - evita conflito entre processos duplicados
   if (started) {
     console.log('\u26a0\ufe0f startBot() chamado mas ja iniciado. Ignorando.');
     return;
@@ -60,10 +60,8 @@ async function startBot() {
     console.log('\u26a0\ufe0f deleteWebhook falhou (nao critico):', e.message);
   }
 
-  // Pequeno delay para garantir que conexao anterior fechou
   await new Promise(r => setTimeout(r, 1500));
 
-  // Lanca o bot sem bloquear o processo (nao usa await)
   bot.launch({
     dropPendingUpdates: true,
     allowedUpdates: ['message', 'callback_query', 'chat_member', 'my_chat_member'],
