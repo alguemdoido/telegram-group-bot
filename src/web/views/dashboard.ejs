@@ -20,12 +20,12 @@
       border: 1px solid #2a3a6e; position: relative; overflow: hidden;
     }
     .stat-card .icon { font-size: 2.2rem; position: absolute; right: 1rem; top: 1rem; opacity: 0.15; }
-    .stat-card .number { font-size: 2rem; font-weight: 700; color: #e94560; line-height: 1; margin-bottom: 0.5rem; }
+    .stat-card .number { font-size: 2rem; font-weight: 700; color: #e94560; line-height: 1; margin-bottom: 0.4rem; }
     .stat-card .label { font-size: 0.85rem; color: #a8b2d8; }
     .stat-card.green .number { color: #22c55e; }
     .stat-card.yellow .number { color: #f59e0b; }
     .stat-card.blue .number { color: #3b82f6; }
-    .quick-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 2rem; }
+    .quick-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
     .quick-link {
       background: #16213e; border: 1px solid #2a3a6e; border-radius: 10px; padding: 1.2rem;
       text-decoration: none; display: flex; align-items: center; gap: 1rem; transition: all 0.2s;
@@ -43,6 +43,7 @@
       <a href="/admin/subscribers">Assinantes</a>
       <a href="/admin/plans">Planos</a>
       <a href="/admin/broadcast">Broadcast</a>
+      <a href="/admin/referrals">Indicacoes</a>
       <a href="/admin/logout">Sair</a>
     </div>
   </nav>
@@ -66,12 +67,12 @@
     <h2 class="section-title">💰 Financeiro</h2>
     <div class="stats-grid">
       <div class="stat-card green">
-        <div class="icon">💸</div>
+        <div class="icon">💵</div>
         <div class="number">R$ <%= Number(activeRevenue).toFixed(2) %></div>
         <div class="label">Receita de Ativos</div>
       </div>
       <div class="stat-card blue">
-        <div class="icon">📈</div>
+        <div class="icon">📅</div>
         <div class="number">R$ <%= Number(mrr).toFixed(2) %></div>
         <div class="label">MRR (Receita Recorrente)</div>
       </div>
@@ -81,17 +82,17 @@
         <div class="label">Vendas Hoje</div>
       </div>
       <div class="stat-card">
-        <div class="icon">📆</div>
+        <div class="icon">📅</div>
         <div class="number">R$ <%= Number(revenueWeek).toFixed(2) %></div>
         <div class="label">Vendas Últimos 7 dias</div>
       </div>
       <div class="stat-card">
-        <div class="icon">📆</div>
+        <div class="icon">📅</div>
         <div class="number">R$ <%= Number(revenueMonth).toFixed(2) %></div>
         <div class="label">Vendas no Mês</div>
       </div>
       <div class="stat-card">
-        <div class="icon">📊</div>
+        <div class="icon">📅</div>
         <div class="number">R$ <%= Number(totalRevenue).toFixed(2) %></div>
         <div class="label">Receita Total (Lifetime)</div>
       </div>
@@ -108,8 +109,12 @@
         <span class="text">Gerenciar Planos</span>
       </a>
       <a href="/admin/broadcast" class="quick-link">
-        <span class="icon">📣</span>
+        <span class="icon">📢</span>
         <span class="text">Enviar Broadcast</span>
+      </a>
+      <a href="/admin/referrals" class="quick-link">
+        <span class="icon">🤝</span>
+        <span class="text">Ranking Indicacoes</span>
       </a>
     </div>
 
