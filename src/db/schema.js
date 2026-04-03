@@ -79,9 +79,13 @@ async function initDB() {
       referrer_telegram_id BIGINT NOT NULL,
       reward_days INTEGER NOT NULL DEFAULT 30,
       reason VARCHAR(255),
+      applied BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
   `);
+
+  // Adiciona coluna applied se nao existir (migracao segura)
+  await db.query(`ALTER TABLE referral_rewards ADD COLUMN IF NOT EXISTS applied BOOLEAN DEFAULT FALSE`);
 
   console.log('\u2705 Banco de dados inicializado');
 }
