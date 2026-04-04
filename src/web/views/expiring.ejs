@@ -1,124 +1,232 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-  <title>Assinantes Expirando</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: system-ui; background: #0f172a; color: #e2e8f0; padding: 20px; }
-    nav { background: #1e293b; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px; }
-    nav a { color: #60a5fa; text-decoration: none; }
-    nav a:hover { text-decoration: underline; }
-    h1 { margin-bottom: 20px; }
-    .alert { padding: 12px; border-radius: 6px; margin-bottom: 20px; }
-    .alert-success { background: #064e3b; color: #6ee7b7; border: 1px solid #10b981; }
-    .alert-error { background: #7f1d1d; color: #fca5a5; border: 1px solid #dc2626; }
-    .form-container { background: #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
-    .form-group { margin-bottom: 15px; }
-    label { display: block; margin-bottom: 5px; font-weight: 500; }
-    textarea { width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; font-family: inherit; min-height: 120px; }
-    input[type="checkbox"] { margin-right: 8px; }
-    .plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; }
-    .plan-checkbox { background: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155; }
-    button { background: #2563eb; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
-    button:hover { background: #1d4ed8; }
-    table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 8px; overflow: hidden; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; }
-    th { background: #334155; font-weight: 600; }
-    tr:last-child td { border-bottom: none; }
-    .expires-soon { color: #fbbf24; font-weight: 600; }
-  </style>
+<meta charset="UTF-8">
+<title>Assinantes Expirando</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: system-ui; background: #0f172a; color: #e2e8f0; padding: 20px; }
+nav { background: #1e293b; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px; }
+nav a { color: #60a5fa; text-decoration: none; }
+nav a:hover { text-decoration: underline; }
+h1 { margin-bottom: 20px; }
+.alert { padding: 12px; border-radius: 6px; margin-bottom: 20px; }
+.alert-success { background: #064e3b; color: #6ee7b7; border: 1px solid #10b981; }
+.alert-error { background: #7f1d1d; color: #fca5a5; border: 1px solid #dc2626; }
+.alert-info { background: #1e3a5f; color: #93c5fd; border: 1px solid #3b82f6; }
+.form-container { background: #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+.form-group { margin-bottom: 15px; }
+label { display: block; margin-bottom: 5px; font-weight: 500; }
+textarea { width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; font-family: inherit; min-height: 120px; }
+.plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; }
+.plan-checkbox { background: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155; }
+button { background: #2563eb; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
+button:hover { background: #1d4ed8; }
+button:disabled { background: #475569; cursor: not-allowed; }
+table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 8px; overflow: hidden; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; }
+th { background: #334155; font-weight: 600; }
+tr:last-child td { border-bottom: none; }
+.expires-soon { color: #fbbf24; font-weight: 600; }
+
+/* Abas */
+.tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+.tab-btn {
+  padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: 600;
+  border: 2px solid #334155; background: #1e293b; color: #94a3b8; transition: all .2s;
+}
+.tab-btn.active { background: #2563eb; border-color: #2563eb; color: white; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Barra de progresso */
+.progress-bar-wrap { background: #334155; border-radius: 6px; height: 18px; margin-top: 10px; overflow: hidden; }
+.progress-bar { height: 100%; background: #10b981; border-radius: 6px; transition: width .5s; }
+.progress-text { font-size: 13px; color: #94a3b8; margin-top: 6px; }
+.badge-sent   { background: #064e3b; color: #6ee7b7; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+.badge-notsent{ background: #7c2d12; color: #fdba74; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+</style>
 </head>
 <body>
-  <nav>
-    <a href="/admin">Dashboard</a>
-    <a href="/admin/subscribers">Assinantes</a>
-    <a href="/admin/expiring" style="color: #fbbf24;">Expirando</a>
-    <a href="/admin/plans">Planos</a>
-    <a href="/admin/broadcast">Broadcast</a>
-    <a href="/admin/logout">Sair</a>
-  </nav>
 
-  <h1>🚨 Assinantes Expirando em 3 Dias (<%= subscribers.length %>)</h1>
+<nav>
+  <a href="/admin">Dashboard</a>
+  <a href="/admin/subscribers">Assinantes</a>
+  <a href="/admin/expiring">Expirando</a>
+  <a href="/admin/plans">Planos</a>
+  <a href="/admin/broadcast">Broadcast</a>
+  <a href="/admin/logout">Sair</a>
+</nav>
 
-  <% if (success) { %>
-    <div class="alert alert-success">
-      <% if (success.startsWith('sent_')) { %>
-        <% const parts = success.split('_'); %>
-        ✅ Mensagem enviada! <%= parts[1] %> enviadas, <%= parts[3] %> falharam.
-      <% } else { %>
-        ✅ <%= success %>
-      <% } %>
-    </div>
-  <% } %>
-  
-  <% if (error) { %>
-    <div class="alert alert-error">
+<h1>🚨 Assinantes Expirando em 3 Dias (<%= notSentToday.length + sentToday.length %>)</h1>
+
+<% if (success) { %>
+  <div class="alert alert-success">
+    <% if (success.startsWith('job_started_')) { %>
+      🚀 Envio iniciado em background para <strong><%= success.split('_')[2] %></strong> pessoas! Acompanhe o progresso abaixo.
+    <% } else if (success.startsWith('sent_')) { %>
+      <% const parts = success.split('_'); %>
+      ✅ Mensagem enviada! <%= parts[1] %> enviadas, <%= parts[3] %> falharam.
+    <% } else { %>
+      ✅ <%= success %>
+    <% } %>
+  </div>
+<% } %>
+
+<% if (error) { %>
+  <div class="alert alert-error">
+    <% if (error === 'job_already_running') { %>
+      ⚠️ Já existe um envio em andamento. Aguarde terminar antes de iniciar outro.
+    <% } else { %>
       ❌ <%= error %>
+    <% } %>
+  </div>
+<% } %>
+
+<% if (jobStatus.running) { %>
+  <div class="alert alert-info" id="job-progress-box">
+    ⏳ <strong>Envio em andamento...</strong>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="progress-bar" style="width: <%= jobStatus.total > 0 ? Math.round((jobStatus.sent + jobStatus.failed) / jobStatus.total * 100) : 0 %>%"></div>
     </div>
-  <% } %>
+    <div class="progress-text" id="progress-text">
+      <%= jobStatus.sent + jobStatus.failed %> / <%= jobStatus.total %> —
+      ✅ <%= jobStatus.sent %> enviados, ❌ <%= jobStatus.failed %> falharam
+    </div>
+  </div>
+<% } %>
 
-  <% if (subscribers.length > 0) { %>
-    <div class="form-container">
-      <h2>📨 Enviar Mensagem de Renovação</h2>
-      <form method="POST" action="/admin/expiring/send">
-        <div class="form-group">
-          <label>Mensagem (Markdown)</label>
-          <textarea name="message" required placeholder="🔔 Sua assinatura vence em breve!\n\nRenove agora e continue aproveitando o acesso ao grupo VIP."></textarea>
-        </div>
-
-        <div class="form-group">
-          <label>
-            <input type="checkbox" name="includePlans" value="1">
-            Incluir botões de planos na mensagem
-          </label>
-        </div>
-
-        <div class="form-group">
-          <label>Selecione os planos que deseja oferecer:</label>
-          <div class="plans-grid">
-            <% plans.forEach(plan => { %>
-              <div class="plan-checkbox">
-                <label>
-                  <input type="checkbox" name="planIds" value="<%= plan.id %>">
-                  <%= plan.name %> - R$ <%= Number(plan.price).toFixed(2) %>
-                </label>
-              </div>
-            <% }) %>
+<!-- Formulário de envio -->
+<% if (notSentToday.length > 0) { %>
+<div class="form-container">
+  <h2 style="margin-bottom:15px">📨 Enviar Mensagem de Renovação</h2>
+  <form action="/admin/expiring/send" method="POST" id="send-form">
+    <div class="form-group">
+      <label>Mensagem (Markdown)</label>
+      <textarea name="message" placeholder="Ex: ⚠️ Sua assinatura vence em breve! Renove agora..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>
+        <input type="checkbox" name="includePlans" value="1" id="includePlansCheck">
+        Incluir botões de planos na mensagem
+      </label>
+      <div id="plansSection" style="display:none; margin-top:10px">
+        <label>Selecione os planos:</label>
+        <div class="plans-grid">
+          <% plans.forEach(plan => { %>
+          <div class="plan-checkbox">
+            <label>
+              <input type="checkbox" name="planIds" value="<%= plan.id %>">
+              <%= plan.name %> - R$ <%= Number(plan.price).toFixed(2) %>
+            </label>
           </div>
+          <% }) %>
         </div>
-
-        <button type="submit">🚀 Enviar para Todos (<%= subscribers.length %>)</button>
-      </form>
+      </div>
     </div>
-  <% } %>
+    <button type="submit" id="send-btn" <%= jobStatus.running ? 'disabled' : '' %>>
+      🚀 Enviar para Não Enviados Hoje (<%= notSentToday.length %>)
+    </button>
+    <% if (jobStatus.running) { %>
+      <span style="margin-left:10px; color:#fbbf24; font-size:14px">⚠️ Aguarde o envio atual terminar.</span>
+    <% } %>
+  </form>
+</div>
+<% } %>
 
+<!-- Abas -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('not-sent', this)">
+    📨 Não Enviados Hoje <span class="badge-notsent"><%= notSentToday.length %></span>
+  </button>
+  <button class="tab-btn" onclick="showTab('sent', this)">
+    ✅ Enviados Hoje <span class="badge-sent"><%= sentToday.length %></span>
+  </button>
+</div>
+
+<!-- Aba: Não enviados -->
+<div class="tab-content active" id="tab-not-sent">
+  <% if (notSentToday.length === 0) { %>
+    <div class="alert alert-success">✅ Todos já receberam mensagem hoje!</div>
+  <% } else { %>
   <table>
-    <thead>
-      <tr>
-        <th>Nome</th>
-        <th>Username</th>
-        <th>Plano</th>
-        <th>Expira em</th>
-      </tr>
-    </thead>
+    <thead><tr><th>Nome</th><th>Username</th><th>Plano</th><th>Expira em</th></tr></thead>
     <tbody>
-      <% if (subscribers.length === 0) { %>
-        <tr>
-          <td colspan="4" style="text-align: center; padding: 40px;">
-            ✅ Nenhum assinante expirando nos próximos 3 dias!
-          </td>
-        </tr>
-      <% } else { %>
-        <% subscribers.forEach(sub => { %>
-          <tr>
-            <td><%= sub.first_name %></td>
-            <td><%= sub.username || '-' %></td>
-            <td><%= sub.plan_name %></td>
-            <td class="expires-soon"><%= new Date(sub.expires_at).toLocaleString('pt-BR') %></td>
-          </tr>
-        <% }) %>
-      <% } %>
+      <% notSentToday.forEach(sub => { %>
+      <tr>
+        <td><%= sub.first_name %></td>
+        <td><%= sub.username || '-' %></td>
+        <td><%= sub.plan_name %></td>
+        <td class="expires-soon"><%= new Date(sub.expires_at).toLocaleString('pt-BR') %></td>
+      </tr>
+      <% }) %>
     </tbody>
   </table>
+  <% } %>
+</div>
+
+<!-- Aba: Enviados hoje -->
+<div class="tab-content" id="tab-sent">
+  <% if (sentToday.length === 0) { %>
+    <div class="alert alert-info">Nenhuma mensagem enviada hoje ainda.</div>
+  <% } else { %>
+  <table>
+    <thead><tr><th>Nome</th><th>Username</th><th>Plano</th><th>Expira em</th><th>Enviado às</th></tr></thead>
+    <tbody>
+      <% sentToday.forEach(sub => { %>
+      <tr>
+        <td><%= sub.first_name %></td>
+        <td><%= sub.username || '-' %></td>
+        <td><%= sub.plan_name %></td>
+        <td class="expires-soon"><%= new Date(sub.expires_at).toLocaleString('pt-BR') %></td>
+        <td style="color:#6ee7b7"><%= new Date(sub.renewal_sent_at).toLocaleTimeString('pt-BR') %></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+
+<script>
+// Toggle abas
+function showTab(tabId, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tabId).classList.add('active');
+  btn.classList.add('active');
+}
+
+// Toggle seção de planos
+document.getElementById('includePlansCheck')?.addEventListener('change', function() {
+  document.getElementById('plansSection').style.display = this.checked ? 'block' : 'none';
+});
+
+// Polling de progresso do job (só ativa se job estiver rodando)
+<% if (jobStatus.running) { %>
+(function poll() {
+  fetch('/admin/expiring/status')
+    .then(r => r.json())
+    .then(data => {
+      const done = data.sent + data.failed;
+      const pct  = data.total > 0 ? Math.round(done / data.total * 100) : 0;
+
+      const bar  = document.getElementById('progress-bar');
+      const txt  = document.getElementById('progress-text');
+      const box  = document.getElementById('job-progress-box');
+
+      if (bar) bar.style.width = pct + '%';
+      if (txt) txt.innerHTML = \`\${done} / \${data.total} — ✅ \${data.sent} enviados, ❌ \${data.failed} falharam (\${pct}%)\`;
+
+      if (!data.running) {
+        if (box) box.innerHTML = \`<strong>✅ Envio concluído!</strong> \${data.sent} enviados, \${data.failed} falharam. <a href="/admin/expiring" style="color:#60a5fa">Atualizar página</a>\`;
+        document.getElementById('send-btn')?.removeAttribute('disabled');
+      } else {
+        setTimeout(poll, 2000); // polling a cada 2s
+      }
+    })
+    .catch(() => setTimeout(poll, 5000));
+})();
+<% } %>
+</script>
 </body>
 </html>
