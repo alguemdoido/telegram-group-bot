@@ -64,8 +64,7 @@ tr:last-child td { border-bottom: none; }
     <button class="tab-btn <%= currentTab === 'sent_today' ? 'active' : '' %>" onclick="location.href='/admin/expiring?tab=sent_today'">Enviados Hoje</button>
   </div>
 
-<h1>🚨 Assinantes Expirando em 3 Dias (<%= notSentToday.length + sentToday.length %>)</h1>
-
+<h1>🚨 Assinantes Expirando em 3 Dias (<%= subscribers.length %>)</h1>
 <% if (success) { %>
   <div class="alert alert-success">
     <% if (success.startsWith('job_started_')) { %>
