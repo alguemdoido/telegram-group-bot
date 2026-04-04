@@ -94,19 +94,6 @@ router.get('/subscribers', requireAuth, async (req, res) => {
 
 // Listar assinantes que vencem em 3 dias
 router.get('/expiring', requireAuth, async (req, res) => {
-  const subs = await db.query(`
-    SELECT s.*, u.telegram_id, u.first_name, u.username, pl.name as plan_name
-    FROM subscriptions s
-    JOIN users u ON u.id = s.user_id
-    JOIN plans pl ON pl.id = s.plan_id
-    WHERE s.status = 'active' AND s.expires_at <= NOW() + INTERVAL '3 days'
-    ORDER BY s.expires_at ASC
-  `);
-  
-  const plans = await db.query(`SELECT id, name, price FROM plans WHERE active = TRUE ORDER BY duration_days`);
-  
-  res.render('expiring', {
-    subscribers: subs.rows,
     
   // Buscar enviados e nao enviados hoje
   const sentToday = await db.query(`
