@@ -47,7 +47,8 @@ tr:last-child td { border-bottom: none; }
 .badge-notsent{ background: #7c2d12; color: #fdba74; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
 </style>
 </head>
-<body>
+:60
+
 
 <nav>
   <a href="/admin">Dashboard</a>
@@ -57,6 +58,11 @@ tr:last-child td { border-bottom: none; }
   <a href="/admin/broadcast">Broadcast</a>
   <a href="/admin/logout">Sair</a>
 </nav>
+
+  <div class="tabs">
+    <button class="tab-btn <%= currentTab === 'not_sent' ? 'active' : '' %>" onclick="location.href='/admin/expiring?tab=not_sent'">Não Enviados Hoje</button>
+    <button class="tab-btn <%= currentTab === 'sent_today' ? 'active' : '' %>" onclick="location.href='/admin/expiring?tab=sent_today'">Enviados Hoje</button>
+  </div>
 
 <h1>🚨 Assinantes Expirando em 3 Dias (<%= notSentToday.length + sentToday.length %>)</h1>
 
