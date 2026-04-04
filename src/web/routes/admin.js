@@ -166,9 +166,7 @@ router.post('/expiring/send', requireAuth, async (req, res) => {
 
   let sent = 0;
   let failed = 0;
-  :165
-  {
-    try {
+  for (const sub of subs.rows) {    try {
       await bot.telegram.sendMessage(sub.telegram_id, message, {
         parse_mode: 'Markdown',
         ...(keyboard ? keyboard : {}),
@@ -178,7 +176,6 @@ router.post('/expiring/send', requireAuth, async (req, res) => {
       await new Promise((r) => setTimeout(r, 50));
     } catch (e) {
       failed++;
-  :161
     }
   }
   res.redirect(`/admin/expiring?success=sent_${sent}_failed_${failed}`);
