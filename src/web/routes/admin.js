@@ -94,24 +94,44 @@ router.get('/subscribers', requireAuth, async (req, res) => {
 
 // Listar assinantes que vencem em 3 dias
 router.get('/expiring', requireAuth, async (req, res) => {
-  const subs = await db.query(`
-    SELECT s.*, u.telegram_id, u.first_name, u.username, pl.name as plan_name
-    FROM subscriptions s
-    JOIN users u ON u.id = s.user_id
-    JOIN plans pl ON pl.id = s.plan_id
-    WHERE s.status = 'active' AND s.expires_at <= NOW() + INTERVAL '3 days'
-    ORDER BY s.expires_at ASC
-  `);
+    const tab = req.query.tab || 'not_sent';
+  let subsQuery;
   
+  if (tab === 'sent_today') {
+    subsQuery = `
+      SELECT s.*, u.telegram_id, u.first_name, u.username, pl.name as plan_name
+      FROM subscriptions s
+      JOIN users u ON u.id = s.user_id
+      JOIN plans pl ON pl.id = s.plan_id
+      WHERE s.status = 'active' 
+        AND s.expires_at <= NOW() + INTERVAL '3 days'
+        AND s.renewal_sent_at >= CURRENT_DATE
+      ORDER BY s.expires_at ASC
+    `;
+  } else {
+    subsQuery = `
+      SELECT s.*, u.telegram_id, u.first_name, u.username, pl.name as plan_name
+      FROM subscriptions s
+      JOIN users u ON u.id = s.user_id
+      JOIN plans pl ON pl.id = s.plan_id
+      WHERE s.status = 'active' 
+        AND s.expires_at <= NOW() + INTERVAL '3 days'
+        AND (s.renewal_sent_at IS NULL OR s.renewal_sent_at < CURRENT_DATE)
+      ORDER BY s.expires_at ASC
+    `;
+  }
+
+  const subs = await db.query(subsQuery);
   const plans = await db.query(`SELECT id, name, price FROM plans WHERE active = TRUE ORDER BY duration_days`);
-  
+
   res.render('expiring', {
     subscribers: subs.rows,
     plans: plans.rows,
+    currentTab: tab,
     result: null,
     success: req.query.success || null,
     error: req.query.error || null,
-  });
+  })
 });
 
 // Enviar mensagem de renovação para assinantes expirando
@@ -138,24 +158,27 @@ router.post('/expiring/send', requireAuth, async (req, res) => {
   }
 
   const subs = await db.query(`
-    SELECT DISTINCT u.telegram_id
-    FROM subscriptions s
+      SELECT DISTINCT u.telegram_id, s.id as subscription_id:176
+      FROM subscriptions s
     JOIN users u ON u.id = s.user_id
     WHERE s.status = 'active' AND s.expires_at <= NOW() + INTERVAL '3 days'
   `);
 
   let sent = 0;
   let failed = 0;
-  for (const sub of subs.rows) {
+  :165
+  {
     try {
       await bot.telegram.sendMessage(sub.telegram_id, message, {
         parse_mode: 'Markdown',
         ...(keyboard ? keyboard : {}),
       });
       sent++;
+              await db.query('UPDATE subscriptions SET renewal_sent_at = NOW() WHERE id = $1', [sub.subscription_id]);
       await new Promise((r) => setTimeout(r, 50));
     } catch (e) {
       failed++;
+  :161
     }
   }
   res.redirect(`/admin/expiring?success=sent_${sent}_failed_${failed}`);
