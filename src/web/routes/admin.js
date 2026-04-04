@@ -158,7 +158,7 @@ router.post('/expiring/send', requireAuth, async (req, res) => {
   }
 
   const subs = await db.query(`
-      SELECT DISTINCT u.telegram_id, s.id as subscription_id:176
+      SELECT DISTINCT u.telegram_id, s.id as subscription_id
       FROM subscriptions s
     JOIN users u ON u.id = s.user_id
     WHERE s.status = 'active' AND s.expires_at <= NOW() + INTERVAL '3 days'
