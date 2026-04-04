@@ -107,6 +107,28 @@ router.get('/expiring', requireAuth, async (req, res) => {
   
   res.render('expiring', {
     subscribers: subs.rows,
+    
+  // Buscar enviados e nao enviados hoje
+  const sentToday = await db.query(`
+        sentToday: sentToday.rows,
+    notSentToday: notSentToday.rows
+    FROM subscriptions s
+    JOIN users u ON u.id = s.user_id
+    JOIN plans pl ON pl.id = s.plan_id
+    WHERE s.status = 'active' AND s.expires_at <= NOW() + INTERVAL '3 days'
+      AND s.renewal_sent_at IS NOT NULL AND s.renewal_sent_at::date = CURRENT_DATE
+    ORDER BY s.expires_at ASC
+  `);
+  
+  const notSentToday = await db.query(`
+    SELECT s.*, u.telegram_id, u.first_name, u.username, pl.name as plan_name
+    FROM subscriptions s
+    JOIN users u ON u.id = s.user_id
+    JOIN plans pl ON pl.id = s.plan_id
+    WHERE s.status = 'active' AND s.expires_at <= NOW() + INTERVAL '3 days'
+      AND (s.renewal_sent_at IS NULL OR s.renewal_sent_at::date < CURRENT_DATE)
+    ORDER BY s.expires_at ASC
+  `);
     plans: plans.rows,
     result: null,
     success: req.query.success || null,
@@ -137,33 +159,54 @@ router.post('/expiring/send', requireAuth, async (req, res) => {
     }
   }
 
+// Buscar apenas nao enviados hoje
   const subs = await db.query(`
-    SELECT DISTINCT u.telegram_id
+    SELECT DISTINCT s.id as sub_id, u.telegram_id
     FROM subscriptions s
     JOIN users u ON u.id = s.user_id
-    WHERE s.status = 'active' AND s.expires_at <= NOW() + INTERVAL '3 days'
+    WHERE s.status = 'active' 
+      AND s.expires_at <= NOW() + INTERVAL '3 days'
+      AND (s.renewal_sent_at IS NULL OR s.renewal_sent_at::date < CURRENT_DATE)
   `);
 
+  const BATCH_SIZE = 1000;
+  const BATCH_DELAY = 60000;
+  const MESSAGE_DELAY = 300;
+  
   let sent = 0;
   let failed = 0;
-  for (const sub of subs.rows) {
-    try {
-      await bot.telegram.sendMessage(sub.telegram_id, message, {
-        parse_mode: 'Markdown',
-        ...(keyboard ? keyboard : {}),
-      });
-      sent++;
-      await new Promise((r) => setTimeout(r, 50));
-    } catch (e) {
-      failed++;
+  const sentSubIds = [];
+
+  for (let i = 0; i < subs.rows.length; i += BATCH_SIZE) {
+    const batch = subs.rows.slice(i, i + BATCH_SIZE);
+    
+    for (const sub of batch) {
+      try {
+        await bot.telegram.sendMessage(sub.telegram_id, message, {
+          parse_mode: 'Markdown',
+          ...(keyboard ? keyboard : {}),
+        });
+        sent++;
+        sentSubIds.push(sub.sub_id);
+        await new Promise((r) => setTimeout(r, MESSAGE_DELAY));
+      } catch (e) {
+        failed++;
+      }
+    }
+    
+    if (i + BATCH_SIZE < subs.rows.length) {
+      await new Promise((r) => setTimeout(r, BATCH_DELAY));
     }
   }
-  res.redirect(`/admin/expiring?success=sent_${sent}_failed_${failed}`);
-});
 
-// Planos CRUD
-router.get('/plans', requireAuth, async (req, res) => {
-  const plans = await db.query(`SELECT * FROM plans ORDER BY duration_days`);
+  if (sentSubIds.length > 0) {
+    await db.query(
+      `UPDATE subscriptions SET renewal_sent_at = NOW() WHERE id = ANY($1)`,
+      [sentSubIds]
+    );
+  }
+
+  res.redirect(`/admin/expiring?success=sent_${sent}_failed_${failed}`)  const plans = await db.query(`SELECT * FROM plans ORDER BY duration_days`);
   res.render('plans', { plans: plans.rows });
 });
 
