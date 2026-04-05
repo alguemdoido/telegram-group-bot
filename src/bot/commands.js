@@ -61,8 +61,7 @@ async function handleStart(ctx) {
         `👋 Olá, ${first_name}! Escolha um plano para acessar o grupo:
 
 ` +
-        `📜 *Comandos Disponíveis:*
-` +
+    `📜 <b>Comandos Disponíveis:</b>`  +` +
         `• /planos - Ver planos de assinatura
 ` +
         `• /indicacoes - Ver seu link e bônus de indicação
@@ -70,11 +69,10 @@ async function handleStart(ctx) {
         `• /assinatura - Ver detalhes e vencimento da sua assinatura
 
 ` +
-        `🆘 *Precisa de ajuda?*
-` +
+    `🆘 <b>Precisa de ajuda?</b>`  +` +
         `Chame no INSTAGRAM 👉 @FRANGINLIVE`,
         { 
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             ...Markup.inlineKeyboard(buttons)
         }
     );
