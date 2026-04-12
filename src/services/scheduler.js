@@ -6,7 +6,7 @@ const { Markup } = require('telegraf');
 function startScheduler() {
 
   // A cada hora: remove membros expirados do grupo
-  cron.schedule('0 * * * *', async () => {
+  cron.schedule('*/10 * * * *', async () => {
     const expired = await db.query(`
       SELECT s.*, u.telegram_id, u.first_name
       FROM subscriptions s
