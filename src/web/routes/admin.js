@@ -307,7 +307,7 @@ async function getRecipients(segment) {
   if (segment === 'never') {
     const r = await db.query(`
       SELECT DISTINCT u.telegram_id FROM users u
-      WHERE u.telegram_id IS NOT NULL AND u.never_bought = TRUE
+      WHERE u.telegram_id IS NOT NULL AND u.never_bought = TR
       AND NOT EXISTS (SELECT 1 FROM subscriptions s WHERE s.user_id = u.id)
     `);
     return r.rows.map((x) => x.telegram_id);
