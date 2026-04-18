@@ -58,22 +58,10 @@ async function handleStart(ctx) {
     );
 
     await ctx.reply(
-        `👋 Olá, ${first_name}! Escolha um plano para acessar o grupo:
-` +
-        `📜 **Comandos Disponíveis:**
-` +
-        `• /planos - Ver planos de assinatura
-` +
-        `• /indicacoes - Ver seu link e bônus de indicação
-` +
-        `• /assinatura - Ver detalhes e vencimento da sua assinatura
-` +
-        `🆘 **Precisa de ajuda?**
-` +
-        `Chame no INSTAGRAM 👉 @FRANGINLIVE`,
-        {
-            parse_mode: 'HTML',
-            ...Markup.inlineKeyboard(buttons)
+  'Prezado, esse bot foi desativado, realize sua assinatura pelo novo bot @Frangaoclub_bot',
+  {
+    parse_mode: 'HTML',
+    ...Markup.inlineKeyboard(buttons)
         }
     );
 }
