@@ -353,34 +353,38 @@ router.post('/broadcast', requireAuth, upload.single('photo'), async (req, res) 
   }
 
   const recipients = await getRecipients(segment);
-  let sent = 0;
-  let failed = 0;
 
-  for (const chatId of recipients) {
-    try {
-      if (req.file) {
-        await bot.telegram.sendPhoto(chatId, { source: req.file.buffer }, {
-          caption: message, parse_mode: 'Markdown', ...(keyboard ? keyboard : {}),
-        });
-      } else {
-        await bot.telegram.sendMessage(chatId, message, {
-          parse_mode: 'Markdown', ...(keyboard ? keyboard : {}),
-        });
-      }
-      sent++;
-      await new Promise((r) => setTimeout(r, 50));
-    } catch (e) {
-      failed++;
-    }
-  }
+    // Responde imediatamente para evitar timeout
+    res.redirect('/admin/broadcast?success=sending');
 
-  const result = { sent, failed, total: recipients.length, segment };
-  const wantsJson = req.xhr || (req.headers.accept && req.headers.accept.includes('application/json'));
-  if (wantsJson) return res.json(result);
+    // Processa o envio em background
+    setImmediate(async () => {
+        let sent = 0;
+        let failed = 0;
 
-  const plans = await db.query(`SELECT id, name, price FROM plans WHERE active = TRUE ORDER BY duration_days`);
-  return res.render('broadcast', { result, plans: plans.rows });
-});
+        for (const chatId of recipients) {
+            try {
+                if (req.file) {
+                    await bot.telegram.sendPhoto(chatId, { source: req.file.buffer }, {
+                        caption: message,
+                        parse_mode: 'Markdown',
+                        ...(keyboard ? keyboard : {}),
+                    });
+                } else {
+                    await bot.telegram.sendMessage(chatId, message, {
+                        parse_mode: 'Markdown',
+                        ...(keyboard ? keyboard : {}),
+                    });
+                }
+                sent++;
+                await new Promise((r) => setTimeout(r, 50));
+            } catch (e) {
+                failed++;
+            }
+        }
+
+        console.log(`Broadcast concluido: ${sent} enviados, ${failed} falharam de ${recipients.length}`);
+    });
 
 // ─── REENVIAR LINK ───────────────────────────────────────────────────────────────
 router.post('/subscribers/:id/resend-link', requireAuth, async (req, res) => {
