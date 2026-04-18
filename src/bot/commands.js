@@ -47,11 +47,8 @@ async function handleStart(ctx) {
         }
     }
 
-  await ctx.reply('Prezado, esse bot foi desativado, realiza sua assinatura pelo novo bot @frangaoclub_bot');
-async function handlePlanos(ctx) {
-    return handleStart(ctx);
+  await ctx.reply('Prezado, esse bot foi desativado, realiza sua assinatura pelo novo bot @frangaoclub_bot');async function handlePlanos(ctx) {
 }
-
 async function handleIndicacoes(ctx) {
     const { id } = ctx.from;
     const referralsRes = await db.query(`
