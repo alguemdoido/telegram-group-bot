@@ -332,6 +332,7 @@ router.get('/broadcast', requireAuth, async (req, res) => {
 
 router.post('/broadcast', requireAuth, upload.single('photo'), async (req, res) => {
   const bot = getBotInstance();
+      // Broadcast fix: respond immediately to avoid HTTP timeout
   const { segment = 'active', message = '', includePlans = '0' } = req.body;
   let selectedPlanIds = req.body.planIds || [];
   if (typeof selectedPlanIds === 'string') selectedPlanIds = [selectedPlanIds];
