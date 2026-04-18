@@ -385,6 +385,7 @@ router.post('/broadcast', requireAuth, upload.single('photo'), async (req, res) 
 
         console.log(`Broadcast concluido: ${sent} enviados, ${failed} falharam de ${recipients.length}`);
     });
+  });
 
 // ─── REENVIAR LINK ───────────────────────────────────────────────────────────────
 router.post('/subscribers/:id/resend-link', requireAuth, async (req, res) => {
