@@ -156,7 +156,7 @@ Digite /planos para ver as opções disponíveis.`,
 
     let statusMsg;
     if (diffDias <= 3) {
-        statusMsg = `⚠️ *Atenção!* Sua assinatura vence em *${diffDias} dia(s)*!`;
+        statusMsg = `⚠️ ⚠️ Sua assinatura vence em *${diffDias} dia(s)*. Renove agora pelo novo bot @Frangaoclub_bot!`;
     } else {
         statusMsg = `✅ Sua assinatura está ativa por mais *${diffDias} dias*`;
     }
