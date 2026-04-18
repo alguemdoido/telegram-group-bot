@@ -356,6 +356,12 @@ router.post('/broadcast', requireAuth, upload.single('photo'), async (req, res) 
   let sent = 0;
   let failed = 0;
 
+    // Retorna imediatamente e processa em background
+    res.redirect('/admin/broadcast?success=processing');
+
+    // Processa o broadcast em background
+    setImmediate(async () => {
+
   for (const chatId of recipients) {
     try {
       if (req.file) {
@@ -375,18 +381,8 @@ router.post('/broadcast', requireAuth, upload.single('photo'), async (req, res) 
     }
   }
 
-  const result = { sent, failed, total: recipients.length, segment };
-  const wantsJson = req.xhr || (req.headers.accept && req.headers.accept.includes('application/json'));
-  if (wantsJson) return res.json(result);
-
-  const plans = await db.query(`SELECT id, name, price FROM plans WHERE active = TRUE ORDER BY duration_days`);
-  return res.render('broadcast', { result, plans: plans.rows });
-});
-
-// ─── REENVIAR LINK ───────────────────────────────────────────────────────────────
-router.post('/subscribers/:id/resend-link', requireAuth, async (req, res) => {
-  const { id } = req.params;
-
+    console.log('✅ Broadcast concluído:', sent, 'enviados', failed, 'falhas');
+        });
   const subRes = await db.query(`
     SELECT s.*, u.telegram_id, u.first_name
     FROM subscriptions s
