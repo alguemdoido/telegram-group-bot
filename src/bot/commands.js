@@ -3,7 +3,7 @@ const { Markup } = require('telegraf');
 
 async function handleStart(ctx) {
     const { id, username, first_name } = ctx.from;
-
+    
     // Captura parametro de referral: /start ref_123456
     const startPayload = ctx.startPayload || '';
     let referrerTelegramId = null;
@@ -50,7 +50,7 @@ async function handleStart(ctx) {
     const plans = await db.query(
         `SELECT * FROM plans WHERE active = TRUE ORDER BY duration_days`
     );
-    const buttons = plans.rows.map(p =>
+    const buttons = plans.rows.map(p => 
         [Markup.button.callback(
             `💳 ${p.name} - R$ ${Number(p.price).toFixed(2)}`,
             `plan_${p.id}`
@@ -58,10 +58,20 @@ async function handleStart(ctx) {
     );
 
     await ctx.reply(
-  'Prezado, esse bot foi desativado, realize sua assinatura pelo novo bot @Frangaoclub_bot',
-  {
-    parse_mode: 'HTML',
-    ...Markup.inlineKeyboard(buttons)
+        `👋 Olá, ${first_name}! Escolha um plano para acessar o grupo:
+
+` +
+    `📜 <b>Comandos Disponíveis:</b>`  +        `• /planos - Ver planos de assinatura
+` +
+        `• /indicacoes - Ver seu link e bônus de indicação
+` +
+        `• /assinatura - Ver detalhes e vencimento da sua assinatura
+
+` +
+    `🆘 <b>Precisa de ajuda?</b>`  +        `Chame no INSTAGRAM 👉 @FRANGINLIVE`,
+        { 
+            parse_mode: 'HTML',
+            ...Markup.inlineKeyboard(buttons)
         }
     );
 }
@@ -73,12 +83,13 @@ async function handlePlanos(ctx) {
 async function handleIndicacoes(ctx) {
     const { id } = ctx.from;
     const referralsRes = await db.query(`
-        SELECT
+        SELECT 
             COUNT(*) FILTER (WHERE converted = TRUE) as convertidos,
             COUNT(*) as total
         FROM referrals
         WHERE referrer_telegram_id = $1
     `, [id]);
+    
     const rewardsRes = await db.query(`
         SELECT COALESCE(SUM(reward_days), 0) as total_dias
         FROM referral_rewards
@@ -91,8 +102,11 @@ async function handleIndicacoes(ctx) {
 
     await ctx.reply(
         `🤝 *Seu Painel de Indicações*
+
 ` +
-        `🔗 Seu link: \`${linkDeIndicacao}\`
+        `🔗 Seu link:
+\`${linkDeIndicacao}\`
+
 ` +
         `📊 *Estatísticas:*
 ` +
@@ -101,6 +115,7 @@ async function handleIndicacoes(ctx) {
         `• Indicados que assinaram: ${convertidos}
 ` +
         `• Dias de bônus ganhos: ${totalDias}
+
 ` +
         `🎁 *Regra:* A cada 2 pessoas que você indicar e assinarem, você ganha 1 mês grátis!`,
         { parse_mode: 'Markdown' }
@@ -122,6 +137,7 @@ async function handleAssinatura(ctx) {
     if (!subRes.rows[0]) {
         await ctx.reply(
             `❌ *Você não possui uma assinatura ativa.*
+
 Digite /planos para ver as opções disponíveis.`,
             { parse_mode: 'Markdown' }
         );
@@ -133,7 +149,10 @@ Digite /planos para ver as opções disponíveis.`,
     const now = new Date();
     const diffMs = expires - now;
     const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    const dataFormatada = expires.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    
+    const dataFormatada = expires.toLocaleDateString('pt-BR', {
+        day: '2-digit', month: '2-digit', year: 'numeric'
+    });
 
     let statusMsg;
     if (diffDias <= 3) {
@@ -144,10 +163,12 @@ Digite /planos para ver as opções disponíveis.`,
 
     await ctx.reply(
         `📋 *Detalhes da sua Assinatura*
+
 ` +
         `📦 Plano: *${sub.plan_name}*
 ` +
         `📅 Vence em: *${dataFormatada}*
+
 ` +
         statusMsg,
         { parse_mode: 'Markdown' }
