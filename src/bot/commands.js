@@ -47,35 +47,7 @@ async function handleStart(ctx) {
         }
     }
 
-    const plans = await db.query(
-        `SELECT * FROM plans WHERE active = TRUE ORDER BY duration_days`
-    );
-    const buttons = plans.rows.map(p => 
-        [Markup.button.callback(
-            `💳 ${p.name} - R$ ${Number(p.price).toFixed(2)}`,
-            `plan_${p.id}`
-        )]
-    );
-
-    await ctx.reply(
-        `👋 Olá, ${first_name}! Escolha um plano para acessar o grupo:
-
-` +
-    `📜 <b>Comandos Disponíveis:</b>`  +        `• /planos - Ver planos de assinatura
-` +
-        `• /indicacoes - Ver seu link e bônus de indicação
-` +
-        `• /assinatura - Ver detalhes e vencimento da sua assinatura
-
-` +
-    `🆘 <b>Precisa de ajuda?</b>`  +        `Chame no INSTAGRAM 👉 @FRANGINLIVE`,
-        { 
-            parse_mode: 'HTML',
-            ...Markup.inlineKeyboard(buttons)
-        }
-    );
-}
-
+  await ctx.reply('Prezado, esse bot foi desativado, realiza sua assinatura pelo novo bot @frangaoclub_bot');
 async function handlePlanos(ctx) {
     return handleStart(ctx);
 }
