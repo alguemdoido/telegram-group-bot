@@ -371,6 +371,7 @@ router.post('/broadcast', requireAuth, upload.single('photo'), async (req, res) 
       await new Promise((r) => setTimeout(r, 50));
     } catch (e) {
       failed++;
+            console.error('❌ Erro ao enviar broadcast para', chatId, ':', e.message);
     }
   }
 
