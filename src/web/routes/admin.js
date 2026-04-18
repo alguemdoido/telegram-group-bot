@@ -455,4 +455,30 @@ router.get('/referrals', requireAuth, async (req, res) => {
   res.render('referrals', { ranking: ranking.rows });
 });
 
+
+// ── BROADCAST DIRETO (TEMPORÁRIO) ────────────────────────────────────────────────────────────
+router.get('/send-broadcast-now', requireAuth, async (req, res) => {
+    const bot = getBotInstance();
+    const message = `UFC CANADA COM DURINHO NA LUTA PRINCIPAL. RENOVE SUA ASSINATURA PELO NOVO BOT @FRANGAOCLUB_BOT\n\nTem mais de 7mil seguidores no insta no nicho de lutas e quer fechar parceria? Me envie uma mensagem no Instagram @franginlive`;
+
+    // Buscar destinatários: nunca compraram + vencidos (NÃO ativos)
+    const neverBought = await getRecipients('never');
+    const expired = await getRecipients('expired');
+    const allRecipients = [...new Set([...neverBought, ...expired])];
+
+    let sent = 0, failed = 0;
+    for (const chatId of allRecipients) {
+          try {
+                  await bot.telegram.sendMessage(chatId, message);
+                  sent++;
+                  await new Promise(r => setTimeout(r, 50));
+                } catch (e) {
+                  failed++;
+                  console.error('❌ Erro broadcast:', chatId, e.message);
+                }
+        }
+
+    console.log('✅ Broadcast concluído:', sent, 'enviados', failed, 'falhas');
+    res.send(`Broadcast concluído! Enviados: ${sent}, Falhas: ${failed}`);
+  });
 module.exports = router;
