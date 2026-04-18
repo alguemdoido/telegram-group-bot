@@ -47,8 +47,7 @@ async function handleStart(ctx) {
         }
     }
 
-  await ctx.reply('Prezado, esse bot foi desativado, realiza sua assinatura pelo novo bot @frangaoclub_bot');async function handlePlanos(ctx) {
-}
+  await ctx.reply('Prezado, esse bot foi desativado, realiza sua assinatura pelo novo bot @frangaoclub_bot');}
 
     async function handlePlanos(ctx) {}
     
