@@ -459,7 +459,7 @@ router.get('/referrals', requireAuth, async (req, res) => {
 // ── BROADCAST DIRETO (TEMPORÁRIO) ────────────────────────────────────────────────────────────
 router.get('/send-broadcast-now', requireAuth, async (req, res) => {
     const bot = getBotInstance();
-  const message = `OII VIDA, AMANHÃ CARLOS CIGARRO PRATES NA LUTA PRINCIPAL, FAÇA SUA ASSINATURA PELO NOVO BOT @FRANGAOCLUB_BOT\n\nCARD INICIANDO AS 05:00 DA MANHÃ, GARANTA O MES DE MAIO INTEIRO POR 5CAO.`;
+  const message = `ESSE BOT FOI DESATIVADO, FAÇA ASSINATURA PELO NOVO BOT @FRANGAOCLUB_BOT\n\nESSE BOT FOI DESATIVADO, FAÇA ASSINATURA PELO NOVO BOT @FRANGAOCLUB_BOT.`;
     // Buscar destinatários: nunca compraram + vencidos (NÃO ativos)
     const neverBought = await getRecipients('never');
     const expired = await getRecipients('expired');
